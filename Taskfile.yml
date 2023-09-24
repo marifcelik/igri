@@ -1,0 +1,79 @@
+version: 3
+tasks:
+  up_db:
+    desc: Up the db docker container
+    cmds:
+      - docker run --network {{.NETWORK_NAME}} --name {{.PG_CONTAINER_NAME}}
+        -e POSTGRES_PASSWORD=$PG_PASS
+        -e POSTGRES_DB=$PG_DB
+        -p $PG_PORT:5432 -d postgres
+    status:
+      - docker ps -a --format "{{.Names}}" | grep -q {{.PG_CONTAINER_NAME}}
+    internal: true
+
+  start_db:
+    desc: Start postgres db
+    cmds:
+      - docker start {{.PG_CONTAINER_NAME}}
+    ignore_error: true
+    internal: true
+
+  stop_db:
+    desc: Stop postgres db
+    cmd: docker stop {{.PG_CONTAINER_NAME}}
+
+  up_redis:
+    desc: Up the redis docker container
+    cmds:
+      - docker run --network {{.NETWORK_NAME}} --name {{.REDIS_CONTAINER_NAME}} -p $REDIS_PORT:6379 -d redis
+    status:
+      - docker ps -a --format "{{.Names}}" | grep -q {{.REDIS_CONTAINER_NAME}}
+    internal: true
+
+  start_redis:
+    desc: Start redis db
+    cmds:
+      - docker start {{.REDIS_CONTAINER_NAME}}
+    ignore_error: true
+    internal: true
+
+  stop_redis:
+    desc: Stop redis db
+    cmd: docker stop {{.REDIS_CONTAINER_NAME}}
+
+  run:
+    desc: Start app
+    deps:
+      - up_db
+      - start_db
+      - up_redis
+      - start_redis
+    cmds:
+      - sleep 3 # wait for db and redis to start
+      - "{{.RUN_CMD}}"
+      - defer: { task: stop_db }
+      - defer: { task: stop_redis }
+    # when error occurs, for some reason, its ignores defer task. so we need to ignore error
+    ignore_error: true
+
+  default:
+    desc: Start app in watch mode
+    deps:
+      - up_db
+      - start_db
+      - up_redis
+      - start_redis
+    cmds:
+      - sleep 3 # wait for db and redis to start
+      - watchexec -e go -r -- {{.RUN_CMD}}
+      - defer: { task: stop_db }
+      - defer: { task: stop_redis }
+
+vars:
+  RUN_CMD: go run .
+  PG_CONTAINER_NAME: postgres_db
+  REDIS_CONTAINER_NAME: redis_db
+  NETWORK_NAME: chat_network
+
+dotenv:
+  - .env
