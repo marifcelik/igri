@@ -3,6 +3,7 @@ package utils
 import (
 	"os"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/log"
 	"github.com/joho/godotenv"
@@ -45,7 +46,29 @@ func GetListenAddr() string {
 	if port == "" {
 		port = "8085"
 	}
+	// we don't check host because if it's empty, that's fine
 	return host + ":" + port
+}
+
+func GetExpirationTime() time.Duration {
+	d := os.Getenv("SESSION_EXPIRATION")
+	defaultD := time.Hour * 24
+	log := log.WithPrefix("SESSION")
+
+	if d == "" {
+		log.Info("session duration is 24h")
+		return defaultD
+	}
+
+	pd, err := time.ParseDuration(d)
+	if err != nil {
+		log.Warn("utils.GetExpirationTime", "err", err)
+		log.Info("session duration is 24h")
+		return defaultD
+	}
+
+	log.Infof("session duration is %s", d)
+	return pd
 }
 
 // Check the error and exit if its not nil.
