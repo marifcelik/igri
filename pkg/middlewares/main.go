@@ -2,8 +2,10 @@ package middlewares
 
 import (
 	"go-chat/internal/storage"
+	"go-chat/pkg/utils"
 
 	"github.com/charmbracelet/log"
+	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -17,9 +19,17 @@ func AuthMiddleware(c *fiber.Ctx) error {
 
 	name := userSess.Get("user")
 	if name == nil || name.(string) == "" {
-		log.Warn("unauthorized request", "from", c.IPs())
+		log.Warn("unauthorized request", "from", utils.GetIPAddr(c))
 		return c.SendStatus(fiber.ErrUnauthorized.Code)
 	}
 
 	return c.Next()
+}
+
+func RequestUpgrade(c *fiber.Ctx) error {
+	if websocket.IsWebSocketUpgrade(c) {
+		c.Locals("allowed", true)
+		return c.Next()
+	}
+	return fiber.ErrUpgradeRequired
 }
