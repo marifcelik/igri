@@ -1,7 +1,7 @@
 package routes
 
 import (
-	handlers "go-chat/internal/handlers/http"
+	authHandler "go-chat/internal/handlers/http/auth"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -9,7 +9,7 @@ import (
 func SetupAuthRoutes(app *fiber.App) {
 	router := app.Group("auth")
 
-	router.Post("/login", handlers.LoginHandler)
-	router.Post("/logout", handlers.LogoutHandler)
-	router.Post("/register", handlers.RegisterHandler)
+	router.Post("/login", authHandler.Login)
+	router.Post("/logout", authHandler.Logout)
+	router.Post("/register", authHandler.Register)
 }
