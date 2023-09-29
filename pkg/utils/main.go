@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/log"
+	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 )
 
@@ -37,8 +38,7 @@ func GetDBURL() string {
 // if REDIS_URL env is not set then that returns "" because 'redis.Config' defaults
 // are same the default connection url
 func GetRedisURL() string {
-	connStr := os.Getenv("REDIS_URL")
-	return connStr
+	return os.Getenv("REDIS_URL")
 }
 
 func GetListenAddr() string {
@@ -69,6 +69,25 @@ func GetExpirationTime() time.Duration {
 
 	log.Infof("session duration is %s", d)
 	return pd
+}
+
+func GetIPAddr(c *fiber.Ctx) any {
+	switch {
+	case c.IsFromLocal():
+		return c.Context().LocalIP()
+	case len(c.IPs()) != 0:
+		return c.IPs()
+	case c.IP() != "":
+		return c.IP()
+	default:
+		return c.Context().RemoteAddr()
+	}
+}
+
+func InternalErr(c *fiber.Ctx, err error) error {
+	return c.Status(fiber.ErrInternalServerError.Code).JSON(fiber.Map{
+		"err": err.Error(),
+	})
 }
 
 // Check the error and exit if its not nil.

@@ -3,9 +3,10 @@ package http
 import (
 	"errors"
 
-	"go-chat/internal/db"
+	"go-chat/db"
 	"go-chat/internal/storage"
 	"go-chat/pkg/models"
+	"go-chat/pkg/utils"
 
 	"github.com/charmbracelet/log"
 	v "github.com/cohesivestack/valgo"
@@ -21,7 +22,7 @@ type user struct {
 	PasswordConfirm string `json:"password_confirm"`
 }
 
-func LoginHandler(c *fiber.Ctx) error {
+func Login(c *fiber.Ctx) error {
 	body := user{}
 	if err := c.BodyParser(&body); err != nil {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(fiber.Map{
@@ -52,19 +53,19 @@ func LoginHandler(c *fiber.Ctx) error {
 
 	err = createSession(c, user.Username)
 	if err != nil {
-		return internalErr(c, errors.New("user created but login failed"))
+		return utils.InternalErr(c, errors.New("user created but login failed"))
 	}
 
 	return c.JSON(user)
 }
 
-func LogoutHandler(c *fiber.Ctx) error {
+func Logout(c *fiber.Ctx) error {
 	// i use 1 minute session expration time so for now its okey
 	// TODO implement the logout
-	return c.Status(fiber.ErrNotImplemented.Code).SendString("not implemented yet :/")
+	return fiber.ErrNotImplemented
 }
 
-func RegisterHandler(c *fiber.Ctx) error {
+func Register(c *fiber.Ctx) error {
 	body := user{}
 	if err := c.BodyParser(&body); err != nil {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(fiber.Map{
@@ -85,7 +86,7 @@ func RegisterHandler(c *fiber.Ctx) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Error("bcrypt hash error", "err", err)
-		return internalErr(c, err)
+		return utils.InternalErr(c, err)
 	}
 
 	u := models.User{
@@ -97,7 +98,7 @@ func RegisterHandler(c *fiber.Ctx) error {
 
 	userExist, err := db.CheckUsername(u.Username, c.Context())
 	if err != nil {
-		return internalErr(c, err)
+		return utils.InternalErr(c, err)
 	}
 	if userExist {
 		return c.Status(fiber.ErrConflict.Code).JSON(fiber.Map{
@@ -108,7 +109,7 @@ func RegisterHandler(c *fiber.Ctx) error {
 	_, err = db.CreateUser(&u, c.Context())
 	if err != nil {
 		log.Error("registerHandler", "err", err)
-		return internalErr(c, err)
+		return utils.InternalErr(c, err)
 	}
 
 	// TODO find better way to login after registeration and do better error handling
@@ -116,12 +117,6 @@ func RegisterHandler(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"id": u.ID,
-	})
-}
-
-func internalErr(c *fiber.Ctx, err error) error {
-	return c.Status(fiber.ErrInternalServerError.Code).JSON(fiber.Map{
-		"err": err.Error(),
 	})
 }
 
