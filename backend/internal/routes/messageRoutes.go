@@ -20,5 +20,5 @@ func SetupMessageRoutes(app *fiber.App) {
 	ws := app.Group("ws")
 	ws.Use(middlewares.AuthMiddleware, middlewares.RequestUpgrade)
 
-	ws.Get("/", websocket.New(websocketHandler.SendMessage))
+	ws.Get("/", websocket.New(websocketHandler.Messages))
 }
