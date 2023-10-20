@@ -7,7 +7,8 @@ export default defineNuxtConfig({
   modules: [
     '@nuxtjs/tailwindcss',
     '@vueuse/nuxt',
-    '@formkit/auto-animate',
+    '@vueuse/motion/nuxt',
+    '@formkit/auto-animate/nuxt',
     '@vee-validate/nuxt'
   ],
   components: [

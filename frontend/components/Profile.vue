@@ -13,9 +13,9 @@ import {
   Settings,
   User,
   UserPlus,
-  Users,
+  Users
 } from 'lucide-vue-next'
-import { DropdownMenuPortal } from './ui/dropdown-menu';
+import { DropdownMenuPortal } from './ui/dropdown-menu'
 
 const dropdownMenuItems: DropdownItems[][] = [
   [
@@ -43,8 +43,7 @@ const dropdownMenuItems: DropdownItems[][] = [
     { icon: Cloud, label: 'API', disabled: true }
   ],
   [{ icon: LogOut, label: 'Log out', shortcut: '⇧⌘Q' }]
-];
-
+]
 </script>
 
 <template>
@@ -58,24 +57,26 @@ const dropdownMenuItems: DropdownItems[][] = [
     <UiDropdownMenuContent class="w-56" side="right" align="start">
       <UiDropdownMenuLabel>My Account</UiDropdownMenuLabel>
       <UiDropdownMenuSeparator />
-      <template v-for="group, i in dropdownMenuItems" :key="i">
+      <template v-for="(group, i) in dropdownMenuItems" :key="i">
         <UiDropdownMenuGroup>
-          <template v-for="item in group">
-            <UiDropdownMenuItem v-if="!item.subMenu">
-              <component :is="item.icon" class="w-4 h-4 mr-2" />
+          <template v-for="item, j in group" :key="j">
+            <UiDropdownMenuItem v-if="!item.subMenu" :class="/* @ts-ignore */{ 'focus:bg-destructive': i === dropdownMenuItems.length - 1 }">
+              <component :is="item.icon" class="mr-2 h-4 w-4" />
               <span>{{ item.label }}</span>
-              <UiDropdownMenuShortcut v-if="item.shortcut">{{ item.shortcut }}</UiDropdownMenuShortcut>
+              <UiDropdownMenuShortcut v-if="item.shortcut">{{
+                item.shortcut
+              }}</UiDropdownMenuShortcut>
             </UiDropdownMenuItem>
 
             <UiDropdownMenuSub v-else>
               <UiDropdownMenuSubTrigger>
-                <component :is="item.icon" class="w-4 h-4 mr-2" />
+                <component :is="item.icon" class="mr-2 h-4 w-4" />
                 <span>{{ item.label }}</span>
               </UiDropdownMenuSubTrigger>
               <DropdownMenuPortal>
                 <UiDropdownMenuSubContent>
                   <UiDropdownMenuItem v-for="subItem in item.subMenu">
-                    <component :is="subItem.icon" class="w-4 h-4 mr-2" />
+                    <component :is="subItem.icon" class="mr-2 h-4 w-4" />
                     <span>{{ subItem.label }}</span>
                   </UiDropdownMenuItem>
                 </UiDropdownMenuSubContent>
