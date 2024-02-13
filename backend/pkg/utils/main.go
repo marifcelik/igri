@@ -93,7 +93,7 @@ func InternalErr(c *fiber.Ctx, err error) error {
 // Check the error and exit if its not nil.
 // The parameters after the second parameter will be joined into a single string
 func CheckErr(err error, msgParams ...string) {
-	msg := strings.Join(msgParams, "")
+	msg := strings.Join(msgParams, " ")
 
 	if err != nil {
 		if msg != "" {

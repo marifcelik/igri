@@ -15,6 +15,10 @@ func AuthMiddleware(c *fiber.Ctx) error {
 	userSess, err := storage.Session.Get(c)
 	if err != nil {
 		log.Error("session get error", "err", err)
+		// TODO send a more meaningful response
+		return c.Status(fiber.ErrUnavailableForLegalReasons.Code).JSON(fiber.Map{
+			"err": err.Error(),
+		})
 	}
 
 	name := userSess.Get("user")

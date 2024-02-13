@@ -63,11 +63,10 @@ const dropdownMenuItems: DropdownItems[][] = [
             <UiDropdownMenuItem v-if="!item.subMenu" :class="/* @ts-ignore */{ 'focus:bg-destructive': i === dropdownMenuItems.length - 1 }">
               <component :is="item.icon" class="mr-2 h-4 w-4" />
               <span>{{ item.label }}</span>
-              <UiDropdownMenuShortcut v-if="item.shortcut">{{
-                item.shortcut
-              }}</UiDropdownMenuShortcut>
+              <UiDropdownMenuShortcut v-if="item.shortcut">
+                {{ item.shortcut }}
+              </UiDropdownMenuShortcut>
             </UiDropdownMenuItem>
-
             <UiDropdownMenuSub v-else>
               <UiDropdownMenuSubTrigger>
                 <component :is="item.icon" class="mr-2 h-4 w-4" />

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 const users = ['furkan', 'arif', 'kadir', 'michella']
+
+const active = ref<number>()
 </script>
 
 <template>
@@ -11,9 +13,13 @@ const users = ['furkan', 'arif', 'kadir', 'michella']
       <div
         v-for="(user, i) in users"
         :key="i"
+        @click="active = i"
         class="h-24 w-full hover:cursor-pointer !relative"
       >
-        <div class="flex h-full w-full items-center justify-between space-x-4 transition-colors hover:bg-slate-300 hover:bg-opacity-30 dark:hover:bg-opacity-10">
+        <div
+          class="flex h-full w-full items-center justify-between space-x-4 transition-colors hover:bg-slate-300 hover:bg-opacity-30 dark:hover:bg-opacity-10"
+          :class="{'bg-slate-300 bg-opacity-30 dark:bg-opacity-10': active === i}"  
+        >
           <div class="ml-6 flex items-center space-x-4">
             <UiAvatar class="h-16 w-16">
               <UiAvatarImage src="" />
@@ -25,7 +31,7 @@ const users = ['furkan', 'arif', 'kadir', 'michella']
             </div>
           </div>
         </div>
-        <UiSeparator />
+        <UiSeparator v-if="i < users.length - 1" class="" />
       </div>
     </UiScrollArea>
   </aside>
