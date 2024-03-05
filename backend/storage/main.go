@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"go-chat/pkg/utils"
+	"go-chat/config"
 
 	fiber_session "github.com/gofiber/fiber/v2/middleware/session"
 	fiber_utils "github.com/gofiber/fiber/v2/utils"
@@ -13,12 +13,12 @@ var Session *fiber_session.Store
 func init() {
 	Session = fiber_session.New(fiber_session.Config{
 		Storage: redis.New(redis.Config{
-			URL: utils.GetRedisURL(),
+			URL: config.C[config.RedisURL],
 		}),
 		KeyLookup: "header:Authorization",
 		KeyGenerator: func() string {
 			return "Bearer " + fiber_utils.UUIDv4()
 		},
-		Expiration: utils.GetExpirationTime(),
+		Expiration: config.GetExpirationTime(),
 	})
 }

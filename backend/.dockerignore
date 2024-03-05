@@ -1,0 +1,10 @@
+.vscode/
+
+.dockerignore
+.gitingore
+.env
+
+README.md
+Dockerfile
+Makefile
+Taskfile.yml

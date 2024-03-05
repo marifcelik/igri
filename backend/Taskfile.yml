@@ -1,26 +1,33 @@
 version: 3
 tasks:
-  up_db:
-    desc: Up the db docker container
+  create_network:
+    desc: Create a docker network for the app
+    summary: If you are using app first time, you need to create a network for the app
     cmds:
-      - docker run --network {{.NETWORK_NAME}} --name {{.PG_CONTAINER_NAME}}
-        -e POSTGRES_PASSWORD=$PG_PASS
-        -e POSTGRES_DB=$PG_DB
-        -p $PG_PORT:5432 -d postgres
+      - docker network create {{.NETWORK_NAME}}
     status:
-      - docker ps -a --format "{{.Names}}" | grep -q {{.PG_CONTAINER_NAME}}
+      - docker network ls --format "{{.Name}}" | grep -q {{.NETWORK_NAME}}
+
+  up_db:
+    desc: Up the mongodb docker container
+    cmds:
+      - docker run --network {{.NETWORK_NAME}} --name {{.MONGO_CONTAINER_NAME}}
+        -p $MONGO_PORT:27017 -d mongo
+    status:
+      - docker ps -a --format "{{.Names}}" | grep -q {{.MONGO_CONTAINER_NAME}}
     internal: true
 
   start_db:
-    desc: Start postgres db
+    desc: Start mongodb
+    deps:
+      - up_db
     cmds:
-      - docker start {{.PG_CONTAINER_NAME}}
+      - docker start {{.MONGO_CONTAINER_NAME}}
     ignore_error: true
-    internal: true
 
   stop_db:
-    desc: Stop postgres db
-    cmd: docker stop {{.PG_CONTAINER_NAME}}
+    desc: Stop mongodb
+    cmd: docker stop {{.MONGO_CONTAINER_NAME}}
 
   up_redis:
     desc: Up the redis docker container
@@ -32,10 +39,11 @@ tasks:
 
   start_redis:
     desc: Start redis db
+    deps:
+      - up_redis
     cmds:
       - docker start {{.REDIS_CONTAINER_NAME}}
     ignore_error: true
-    internal: true
 
   stop_redis:
     desc: Stop redis db
@@ -44,9 +52,7 @@ tasks:
   run:
     desc: Start app
     deps:
-      - up_db
       - start_db
-      - up_redis
       - start_redis
     cmds:
       - sleep 3 # wait for db and redis to start
@@ -59,9 +65,7 @@ tasks:
   default:
     desc: Start app in watch mode
     deps:
-      - up_db
       - start_db
-      - up_redis
       - start_redis
     cmds:
       - sleep 3 # wait for db and redis to start
@@ -71,7 +75,7 @@ tasks:
 
 vars:
   RUN_CMD: go run .
-  PG_CONTAINER_NAME: postgres_db
+  MONGO_CONTAINER_NAME: mongo_db
   REDIS_CONTAINER_NAME: redis_db
   NETWORK_NAME: chat_network
 

@@ -1,8 +1,8 @@
 package middlewares
 
 import (
-	"go-chat/internal/storage"
-	"go-chat/pkg/utils"
+	"go-chat/storage"
+	"go-chat/utils"
 
 	"github.com/charmbracelet/log"
 	"github.com/gofiber/contrib/websocket"
@@ -24,7 +24,7 @@ func AuthMiddleware(c *fiber.Ctx) error {
 	name := userSess.Get("user")
 	if name == nil || name.(string) == "" {
 		log.Warn("unauthorized request", "from", utils.GetIPAddr(c))
-		return c.SendStatus(fiber.ErrUnauthorized.Code)
+		return fiber.ErrUnauthorized
 	}
 
 	return c.Next()
