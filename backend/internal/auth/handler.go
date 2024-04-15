@@ -24,14 +24,16 @@ type AuthHandler interface {
 }
 
 type authHandler struct {
-	repo *authRepo
+	repo *AuthRepo
 }
 
-func NewAuthHandler(repo *authRepo) AuthHandler {
+func NewAuthHandler(repo *AuthRepo) AuthHandler {
 	return &authHandler{repo: repo}
 }
 
 func (h *authHandler) Login(c *fiber.Ctx) error {
+	log.Print(c.GetReqHeaders())
+
 	body := UserLoginDTO{}
 	if err := c.BodyParser(&body); err != nil {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(fiber.Map{
@@ -76,7 +78,20 @@ func (h *authHandler) Login(c *fiber.Ctx) error {
 func (h *authHandler) Logout(c *fiber.Ctx) error {
 	// i use 1 minute session expration time so for now its okey
 	// TODO implement the logout
-	return fiber.ErrNotImplemented
+	userSession, err := storage.Session.Get(c)
+	if err != nil {
+		return c.Status(fiber.ErrNotAcceptable.Code).JSON(fiber.Map{
+			"err": err.Error(),
+		})
+	}
+
+	err = userSession.Destroy()
+	if err != nil {
+		return c.Status(fiber.ErrNotAcceptable.Code).JSON(fiber.Map{
+			"err": err.Error(),
+		})
+	}
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
 func (h *authHandler) Register(c *fiber.Ctx) error {
@@ -144,7 +159,7 @@ func (h *authHandler) Register(c *fiber.Ctx) error {
 	})
 }
 
-func (h *authHandler) createSession(c *fiber.Ctx, u string) error {
+func (h *authHandler) createSession(c *fiber.Ctx, username string) error {
 	log := log.WithPrefix("SESSION")
 	userSess, err := storage.Session.Get(c)
 	if err != nil {
@@ -152,9 +167,8 @@ func (h *authHandler) createSession(c *fiber.Ctx, u string) error {
 		return err
 	}
 
-	userSess.Set("user", u)
-	err = userSess.Save()
-	if err != nil {
+	userSess.Set("user", username)
+	if err = userSess.Save(); err != nil {
 		log.Error("user session save error", "err", err)
 	}
 	return err
