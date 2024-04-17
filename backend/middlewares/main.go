@@ -30,6 +30,11 @@ func AuthMiddleware(c *fiber.Ctx) error {
 	return c.Next()
 }
 
+func WsHeaderMiddleware(c *fiber.Ctx) error {
+	c.Request().Header.Add("Authorization", "Bearer "+c.Query("access_token"))
+	return c.Next()
+}
+
 func RequestUpgrade(c *fiber.Ctx) error {
 	if websocket.IsWebSocketUpgrade(c) {
 		c.Locals("allowed", true)
