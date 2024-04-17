@@ -68,7 +68,7 @@ tasks:
       - start_db
       - start_redis
     cmds:
-      - sleep 3 # wait for db and redis to start
+      - sleep 2 # wait for db and redis to start
       - watchexec -e go -r -- {{.RUN_CMD}}
       - defer: { task: stop_db }
       - defer: { task: stop_redis }

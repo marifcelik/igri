@@ -55,10 +55,14 @@ func loadConfig(c config, def string) string {
 // GetAppEnv reads the ExpirationTime from the environment variables, parses it and returns it as a time.Duration
 func GetExpirationTime() time.Duration {
 	pd := time.Minute * 1
-	defer log.Infof("session duration is %s", pd.String())
-
 	d := C[Expiration]
+
+	defer func() {
+		log.Infof("session duration is %s", d)
+	}()
+
 	if d == "" {
+		d = "1m"
 		return pd
 	}
 

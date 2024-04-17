@@ -11,10 +11,12 @@ import (
 var Session *fiber_session.Store
 
 func init() {
+	redisStorage := redis.New(redis.Config{
+		URL: config.C[config.RedisURL],
+	})
+
 	Session = fiber_session.New(fiber_session.Config{
-		Storage: redis.New(redis.Config{
-			URL: config.C[config.RedisURL],
-		}),
+		Storage:   redisStorage,
 		KeyLookup: "header:Authorization",
 		KeyGenerator: func() string {
 			return "Bearer " + fiber_utils.UUIDv4()

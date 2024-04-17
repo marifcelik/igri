@@ -14,18 +14,18 @@ import (
 var DB *mongo.Database
 
 func init() {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(config.C[config.MongoURI]))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("db connection error", "err", err)
 	}
 
 	pingCtx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
 	if err = client.Ping(pingCtx, nil); err != nil {
-		log.Fatal(err)
+		log.Fatal("db ping error", "err", err)
 	}
 
 	DB = client.Database("go-chat")

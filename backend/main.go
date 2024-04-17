@@ -24,7 +24,7 @@ func main() {
 	// XXX may be i can create an interface for setup functions
 	auth.Setup(app, db.DB)
 	message.Setup(app)
-	ws.Setup(app)
+	ws.Setup(app, db.DB)
 
 	app.Get("/", middlewares.AuthMiddleware, func(c *fiber.Ctx) error {
 		userSess, err := storage.Session.Get(c)
@@ -37,7 +37,8 @@ func main() {
 			userSess.Set("count", 0)
 		}
 
-		userSess.Set("count", count+1)
+		count++
+		userSess.Set("count", count)
 		if err := userSess.Save(); err != nil {
 			return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 		}

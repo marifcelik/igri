@@ -20,20 +20,20 @@ type User struct {
 }
 
 type UserMessage struct {
-	M
+	M          `bson:",inline"`
 	Message    string             `json:"text,omitempty" bson:"text,omitempty"`
 	SenderID   primitive.ObjectID `json:"senderId,omitempty" bson:"senderId,omitempty"`
 	ReceiverID primitive.ObjectID `json:"receiverId,omitempty" bson:"receiverId,omitempty"`
 }
 
 type Group struct {
-	M
+	M     `bson:",inline"`
 	Name  string               `json:"name,omitempty" bson:"name,omitempty"`
 	Users []primitive.ObjectID `json:"users,omitempty" bson:"users,omitempty"`
 }
 
 type GroupMessage struct {
-	M
+	M        `bson:",inline"`
 	Message  string             `json:"text,omitempty" bson:"text,omitempty"`
 	GroupID  primitive.ObjectID `json:"groupId,omitempty" bson:"groupId,omitempty"`
 	SenderID primitive.ObjectID `json:"senderId,omitempty" bson:"senderId,omitempty"`
