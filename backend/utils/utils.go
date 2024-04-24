@@ -1,29 +1,54 @@
 package utils
 
 import (
+	"encoding/json"
+	"net/http"
 	"strings"
 
 	"github.com/charmbracelet/log"
-	"github.com/gofiber/fiber/v2"
 )
 
-func GetIPAddr(c *fiber.Ctx) string {
+type M map[string]any
+
+func GetIPAddr(r *http.Request) string {
 	switch {
-	case c.IsFromLocal():
-		return c.Context().LocalIP().String()
-	case len(c.IPs()) != 0:
-		return strings.Join(c.IPs(), "")
-	case c.IP() != "":
-		return c.IP()
+	case r.RemoteAddr == "127.0.0.1" || r.RemoteAddr == "::1":
+		return r.RemoteAddr
+	case len(r.Header.Get("X-Forwarded-For")) > 0:
+		return r.Header.Get("X-Forwarded-For")
+	case len(r.Header.Get("X-Real-IP")) > 0:
+		return r.Header.Get("X-Real-IP")
 	default:
-		return c.Context().RemoteAddr().String()
+		return strings.Split(r.RemoteAddr, ":")[0]
 	}
 }
 
-func InternalErr(c *fiber.Ctx, err error) error {
-	return c.Status(fiber.ErrInternalServerError.Code).JSON(fiber.Map{
-		"err": err.Error(),
-	})
+func JsonResp(w http.ResponseWriter, data any, status ...int) {
+	w.Header().Set("Content-Type", "application/json")
+	if len(status) > 0 {
+		w.WriteHeader(status[0])
+	}
+	err := json.NewEncoder(w).Encode(data)
+	if err != nil {
+		log.Error("json encode", "err", err)
+		InternalErrResp(w, err)
+	}
+}
+
+// TODO follow the google api design guide. see: https://cloud.google.com/apis/design/errors
+func ErrResp(w http.ResponseWriter, status int, err ...error) {
+	var text string
+	if len(err) > 0 && err[0] != nil {
+		text = err[0].Error()
+	} else {
+		text = http.StatusText(status)
+	}
+
+	http.Error(w, text, status)
+}
+
+func InternalErrResp(w http.ResponseWriter, err error) {
+	http.Error(w, err.Error(), http.StatusInternalServerError)
 }
 
 // Check the error and exit if its not nil.

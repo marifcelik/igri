@@ -1,52 +1,47 @@
 package main
 
 import (
+	"net/http"
+	"strconv"
+
 	"go-chat/config"
 	"go-chat/db"
 	"go-chat/internal/auth"
 	"go-chat/internal/message"
 	"go-chat/internal/ws"
 	"go-chat/middlewares"
-	"go-chat/storage"
+	st "go-chat/storage"
 
 	"github.com/charmbracelet/log"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
-	log.Info("main")
-	log.Error("deneme")
-	log.Warn("denem 2")
-	app := fiber.New()
-	app.Use(logger.New())
+	app := chi.NewRouter()
+	app.Use(
+		middleware.Logger,
+		middleware.RequestID,
+		middleware.RealIP,
+		middleware.RedirectSlashes,
+		middleware.StripSlashes,
+	)
 
 	// XXX may be i can create an interface for setup functions
 	auth.Setup(app, db.DB)
 	message.Setup(app)
 	ws.Setup(app, db.DB)
 
-	app.Get("/", middlewares.AuthMiddleware, func(c *fiber.Ctx) error {
-		userSess, err := storage.Session.Get(c)
-		if err != nil {
-			return c.Status(fiber.StatusUnauthorized).SendString("unauthorized")
-		}
-
-		count, ok := userSess.Get("count").(int)
-		if !ok {
-			userSess.Set("count", 0)
-		}
-
+	app.With(middlewares.AuthMiddleware).Get("/", func(w http.ResponseWriter, r *http.Request) {
+		count := st.Session.GetInt(r.Context(), "count")
 		count++
-		userSess.Set("count", count)
-		if err := userSess.Save(); err != nil {
-			return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
-		}
+		log.Info(st.Session.Status(r.Context()))
+		st.Session.Put(r.Context(), "count", count)
 
-		return c.JSON(fiber.Map{
-			"count": count,
-		})
+		w.WriteHeader(http.StatusAccepted)
+		w.Write([]byte(strconv.Itoa(count) + "\n"))
 	})
 
-	log.Fatal(app.Listen(config.GetListenAddr()))
+	log.Info("Server listening on", "addr", config.GetListenAddr())
+	log.Fatal(http.ListenAndServe(config.GetListenAddr(), st.Session.LoadAndServeHeader(app)))
 }

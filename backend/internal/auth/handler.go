@@ -1,26 +1,29 @@
 package auth
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"go-chat/models"
-	"go-chat/storage"
+	st "go-chat/storage"
 	"go-chat/utils"
 
-	"github.com/charmbracelet/log"
+	clog "github.com/charmbracelet/log"
 	v "github.com/cohesivestack/valgo"
-	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
 
+var log = clog.WithPrefix("AUTH")
+
 type AuthHandler interface {
-	Login(c *fiber.Ctx) error
-	Logout(c *fiber.Ctx) error
-	Register(c *fiber.Ctx) error
-	createSession(c *fiber.Ctx, u string) error
+	Login(w http.ResponseWriter, r *http.Request)
+	Logout(w http.ResponseWriter, r *http.Request)
+	Register(w http.ResponseWriter, r *http.Request)
+	createSession(r *http.Request, u string)
 }
 
 type authHandler struct {
@@ -31,14 +34,12 @@ func NewAuthHandler(repo *AuthRepo) AuthHandler {
 	return &authHandler{repo: repo}
 }
 
-func (h *authHandler) Login(c *fiber.Ctx) error {
-	log.Print(c.GetReqHeaders())
-
+func (h *authHandler) Login(w http.ResponseWriter, r *http.Request) {
 	body := UserLoginDTO{}
-	if err := c.BodyParser(&body); err != nil {
-		return c.Status(fiber.ErrBadRequest.Code).JSON(fiber.Map{
-			"err": err.Error(),
-		})
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		log.Warn("body parsing", "err", err)
+		utils.ErrResp(w, http.StatusBadRequest)
+		return
 	}
 
 	val := v.
@@ -46,60 +47,55 @@ func (h *authHandler) Login(c *fiber.Ctx) error {
 		Is(v.String(body.Password, "password").Not().Blank().MinLength(8))
 
 	if !val.Valid() {
-		return c.Status(fiber.ErrBadRequest.Code).JSON(val.Error())
+		utils.ErrResp(w, http.StatusBadRequest, val.Error())
+		return
 	}
 
-	user, err := h.repo.GetUserByUsername(body.Username, c.Context())
+	user, err := h.repo.GetUserByUsername(body.Username, r.Context())
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return c.Status(fiber.ErrUnauthorized.Code).JSON(fiber.Map{
-				"err": "username or password is incorrect",
-			})
+			utils.JsonResp(w, utils.M{"err": "username or password is incorrect"}, http.StatusUnauthorized)
+			return
 		}
 		log.Error(fmt.Errorf("get user by username error: %w", err))
-		return utils.InternalErr(c, err)
+		utils.ErrResp(w, http.StatusInternalServerError, err)
+		return
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password))
 	if err != nil {
-		return c.Status(fiber.ErrUnauthorized.Code).JSON(fiber.Map{
-			"err": "username or password is incorrect",
-		})
+		utils.JsonResp(w, utils.M{"err": "username or password is incorrect"}, http.StatusUnauthorized)
+		return
 	}
 
-	err = h.createSession(c, user.Username)
-	if err != nil {
-		return utils.InternalErr(c, errors.New("username and password are correct but login failed"))
-	}
+	h.createSession(r, user.Username)
 
-	return c.JSON(user)
+	utils.JsonResp(w, user)
 }
 
-func (h *authHandler) Logout(c *fiber.Ctx) error {
+func (h *authHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	// i use 1 minute session expration time so for now its okey
 	// TODO implement the logout
-	userSession, err := storage.Session.Get(c)
-	if err != nil {
-		return c.Status(fiber.ErrNotAcceptable.Code).JSON(fiber.Map{
-			"err": err.Error(),
-		})
+	userSession := st.Session.Exists(r.Context(), "user")
+	if !userSession {
+		utils.ErrResp(w, http.StatusNotAcceptable)
+		return
 	}
 
-	err = userSession.Destroy()
+	err := st.Session.Destroy(r.Context())
 	if err != nil {
-		return c.Status(fiber.ErrNotAcceptable.Code).JSON(fiber.Map{
-			"err": err.Error(),
-		})
+		utils.ErrResp(w, http.StatusNotAcceptable, err)
+		return
 	}
-	return c.SendStatus(fiber.StatusNoContent)
+	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *authHandler) Register(c *fiber.Ctx) error {
+func (h *authHandler) Register(w http.ResponseWriter, r *http.Request) {
 	body := UserRegisterDTO{}
-	if err := c.BodyParser(&body); err != nil {
-		return c.Status(fiber.ErrBadRequest.Code).JSON(fiber.Map{
-			"err": err.Error(),
-		})
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		log.Warn("body parsing", "err", err)
+		utils.ErrResp(w, http.StatusBadRequest)
+		return
 	}
 
 	val := v.
@@ -109,27 +105,29 @@ func (h *authHandler) Register(c *fiber.Ctx) error {
 		Is(v.String(body.PasswordConfirm, "passwordConfirm").EqualTo(body.Password, "Passwords must be same"))
 
 	if !val.Valid() {
-		return c.Status(fiber.ErrBadRequest.Code).JSON(val.Error())
+		utils.JsonResp(w, val.Error(), http.StatusBadRequest)
+		return
 	}
 
-	userExist, err := h.repo.CheckUsername(body.Username, c.Context())
+	userExist, err := h.repo.CheckUsername(body.Username, r.Context())
 	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 		log.Error(fmt.Errorf("check username error: %w", err))
-		return utils.InternalErr(c, err)
+		utils.InternalErrResp(w, err)
+		return
 	}
 	if userExist {
-		return c.Status(fiber.ErrConflict.Code).JSON(fiber.Map{
-			"err": "username already exists",
-		})
+		utils.JsonResp(w, utils.M{"err": "username already exists"}, http.StatusConflict)
+		return
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Error("bcrypt hash error", "err", err)
-		return utils.InternalErr(c, err)
+		utils.InternalErrResp(w, err)
+		return
 	}
 
-	u := &models.User{
+	user := &models.User{
 		Name:     body.Name,
 		Username: body.Username,
 		Password: string(hash),
@@ -139,37 +137,25 @@ func (h *authHandler) Register(c *fiber.Ctx) error {
 		},
 	}
 
-	id, err := h.repo.CreateUser(u, c.Context())
+	id, err := h.repo.CreateUser(user, r.Context())
 	if err != nil {
 		log.Error("user create error", "err", err)
-		return utils.InternalErr(c, err)
+		utils.InternalErrResp(w, err)
+		return
 	}
-	log.Print("user created", "user", u)
+	log.Print("user created", "user", user)
 
 	// TODO find better way to login after registeration and do better error handling
 	// FIX sometimes the returned authorization header is: Bearer {\n "err": "username or password is incorrect"\n}
-	err = h.createSession(c, u.Username)
-	if err != nil {
-		return utils.InternalErr(c, errors.New("user created but login failed"))
-	}
+	h.createSession(r, user.Username)
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"id":       id,
-		"username": u.Username,
-	})
+	utils.JsonResp(w, utils.M{"id": id, "username": user.Username}, http.StatusCreated)
 }
 
-func (h *authHandler) createSession(c *fiber.Ctx, username string) error {
-	log := log.WithPrefix("SESSION")
-	userSess, err := storage.Session.Get(c)
-	if err != nil {
-		log.Error("user session get error", "err", err)
-		return err
-	}
-
-	userSess.Set("user", username)
-	if err = userSess.Save(); err != nil {
-		log.Error("user session save error", "err", err)
-	}
-	return err
+func (h *authHandler) createSession(r *http.Request, username string) {
+	log := clog.WithPrefix("SESSION")
+	log.Info("before put", "stat", st.Session.Status(r.Context()))
+	st.Session.Put(r.Context(), "user", username)
+	fmt.Printf("create storage.Session.Keys(r.Context()): %v\n", st.Session.Keys(r.Context()))
+	log.Info("after put", "stat", st.Session.Status(r.Context()))
 }

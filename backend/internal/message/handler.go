@@ -1,11 +1,14 @@
 package message
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"go-chat/utils"
+	"net/http"
+)
 
-func handleGetUserMessages(c *fiber.Ctx) error {
-	return fiber.ErrNotImplemented
+func handleGetUserMessages(w http.ResponseWriter, r *http.Request) {
+	utils.ErrResp(w, http.StatusNotImplemented)
 }
 
-func handleGetMessage(c *fiber.Ctx) error {
-	return fiber.ErrNotImplemented
+func handleGetMessage(w http.ResponseWriter, r *http.Request) {
+	utils.ErrResp(w, http.StatusNotImplemented)
 }

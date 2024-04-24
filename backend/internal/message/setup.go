@@ -3,14 +3,15 @@ package message
 import (
 	"go-chat/middlewares"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/go-chi/chi/v5"
 )
 
-func Setup(app *fiber.App) {
-	r := app.Group("message")
-	r.Use(middlewares.AuthMiddleware)
+func Setup(c *chi.Mux) {
+	c.Route("/message", func(r chi.Router) {
+		r.Use(middlewares.AuthMiddleware)
 
-	// TODO implement get message queries like sender=x, receiver=x
-	r.Get("/", handleGetUserMessages)
-	r.Get("/:id", handleGetMessage)
+		// TODO implement get message queries like sender=x, receiver=x
+		r.Get("/", handleGetUserMessages)
+		r.Get("/:id", handleGetMessage)
+	})
 }

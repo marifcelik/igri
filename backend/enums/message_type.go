@@ -1,6 +1,6 @@
 package enums
 
-import log "github.com/charmbracelet/log"
+import "github.com/charmbracelet/log"
 
 type MessageType int
 
