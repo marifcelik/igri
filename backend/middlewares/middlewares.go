@@ -1,44 +1,52 @@
 package middlewares
 
 import (
-	"go-chat/storage"
+	"fmt"
+	"net/http"
+
+	st "go-chat/storage"
 	"go-chat/utils"
 
 	"github.com/charmbracelet/log"
-	"github.com/gofiber/contrib/websocket"
-	"github.com/gofiber/fiber/v2"
 )
 
-func AuthMiddleware(c *fiber.Ctx) error {
-	log := log.WithPrefix("AUTH MW")
+// TODO
+func AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log := log.WithPrefix("AUTH MW")
+		log.Print("auth", "token", r.Header.Get("Authorization"))
 
-	userSess, err := storage.Session.Get(c)
-	if err != nil {
-		log.Error("session get error", "err", err)
-		// TODO send a more meaningful response
-		return c.Status(fiber.ErrUnavailableForLegalReasons.Code).JSON(fiber.Map{
-			"err": err.Error(),
-		})
-	}
+		fmt.Printf("st.Session.Keys(r.Context()): %v\n", st.Session.Keys(r.Context()))
 
-	name := userSess.Get("user")
-	if name == nil || name.(string) == "" {
-		log.Warn("unauthorized request", "from", utils.GetIPAddr(c))
-		return fiber.ErrUnauthorized
-	}
-
-	return c.Next()
+		user := st.Session.GetString(r.Context(), "user")
+		if user == "" {
+			log.Warn("unauthorized request", "from", utils.GetIPAddr(r))
+			utils.ErrResp(w, http.StatusUnauthorized)
+			return
+		}
+		log.Print("TODO")
+		next.ServeHTTP(w, r)
+	})
 }
 
-func WsHeaderMiddleware(c *fiber.Ctx) error {
-	c.Request().Header.Add("Authorization", "Bearer "+c.Query("access_token"))
-	return c.Next()
+func WsHeaderMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.URL.Query().Get("access_token")
+		if token == "" {
+			utils.ErrResp(w, http.StatusUnauthorized)
+			return
+		}
+		r.Header.Add("Authorization", "Bearer "+token)
+		next.ServeHTTP(w, r)
+	})
 }
 
-func RequestUpgrade(c *fiber.Ctx) error {
-	if websocket.IsWebSocketUpgrade(c) {
-		c.Locals("allowed", true)
-		return c.Next()
-	}
-	return fiber.ErrUpgradeRequired
+func CheckIsUpgrade(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Connection") != "Upgrade" || r.Header.Get("Upgrade") != "Websocket" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		utils.ErrResp(w, http.StatusUpgradeRequired)
+	})
 }
