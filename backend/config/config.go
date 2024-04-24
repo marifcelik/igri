@@ -4,58 +4,42 @@ import (
 	"os"
 	"time"
 
+	"github.com/caarlos0/env/v11"
 	clog "github.com/charmbracelet/log"
 	"github.com/joho/godotenv"
 )
 
-type config = string
+var C config
 
-const (
-	AppEnv     config = "APP_ENV"
-	MongoURI   config = "MONGO_URI"
-	RedisURL   config = "REDIS_URL"
-	Host       config = "HOST"
-	Port       config = "PORT"
-	Expiration config = "SESSION_EXPIRATION"
-)
-
-var defaults = map[config]string{
-	AppEnv:     "dev",
-	MongoURI:   "mongodb://localhost:27017",
-	RedisURL:   "",
-	Host:       "localhost",
-	Port:       "8085",
-	Expiration: "1m",
+type config struct {
+	AppEnv     string `envDefault:"dev"`
+	MongoURI   string `env:"MONGO_URI,expand" envDefault:"mongodb://localhost:27017"`
+	RedisURL   string `env:"REDIS_URL,expand"`
+	Host       string `envDefault:"localhost"`
+	Port       string `envDefault:"8085"`
+	Expiration string `envDefault:"1m"`
 }
-
-var C = map[config]string{}
 
 var log = clog.WithPrefix("CONFIG")
 
 func init() {
 	if os.Getenv("APP_ENV") != "prod" {
 		if err := godotenv.Load(); err != nil {
-			log.Error(err)
+			log.Fatal(err)
 		}
 	}
 
-	for k, v := range defaults {
-		C[k] = loadConfig(k, v)
+	C = config{}
+	opts := env.Options{UseFieldNameByDefault: true}
+	if err := env.ParseWithOptions(&C, opts); err != nil {
+		log.Fatal(err)
 	}
-}
-
-func loadConfig(c config, def string) string {
-	v := os.Getenv(string(c))
-	if v == "" {
-		return def
-	}
-	return v
 }
 
 // GetAppEnv reads the ExpirationTime from the environment variables, parses it and returns it as a time.Duration
 func GetExpirationTime() time.Duration {
 	pd := time.Minute * 1
-	d := C[Expiration]
+	d := C.Expiration
 
 	defer func() {
 		log.Infof("session duration is %s", d)
@@ -66,15 +50,15 @@ func GetExpirationTime() time.Duration {
 		return pd
 	}
 
-	pd, err := time.ParseDuration(d)
+	pd2, err := time.ParseDuration(d)
 	if err != nil {
 		log.Warn("config.GetExpirationTime", "err", err)
 		return pd
 	}
 
-	return pd
+	return pd2
 }
 
 func GetListenAddr() string {
-	return C[Host] + ":" + C[Port]
+	return ":" + C.Port
 }

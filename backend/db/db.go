@@ -16,7 +16,7 @@ var DB *mongo.Database
 func init() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(config.C[config.MongoURI]))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(config.C.MongoURI))
 	if err != nil {
 		log.Fatal("db connection error", "err", err)
 	}
