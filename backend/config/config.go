@@ -9,11 +9,13 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// C is the global config variable
 var C config
 
 type config struct {
 	AppEnv     string `envDefault:"dev"`
 	MongoURI   string `env:"MONGO_URI,expand" envDefault:"mongodb://localhost:27017"`
+	MongoName  string `envDefault:"go-chat"`
 	RedisURL   string `env:"REDIS_URL,expand"`
 	Host       string `envDefault:"localhost"`
 	Port       string `envDefault:"8085"`
@@ -57,6 +59,12 @@ func GetExpirationTime() time.Duration {
 	}
 
 	return pd2
+}
+
+// TODO implement the rest of the function
+func GetIdleTimeout() time.Duration {
+	log.Warn("config.GetIdleTimeout is not implemented")
+	return 0
 }
 
 func GetListenAddr() string {

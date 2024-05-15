@@ -28,5 +28,5 @@ func init() {
 		log.Fatal("db ping error", "err", err)
 	}
 
-	DB = client.Database("go-chat")
+	DB = client.Database(config.C.MongoName)
 }
