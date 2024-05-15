@@ -8,7 +8,7 @@ import (
 
 func Setup(c *chi.Mux) {
 	c.Route("/message", func(r chi.Router) {
-		r.Use(middlewares.AuthMiddleware)
+		r.Use(middlewares.Auth)
 
 		// TODO implement get message queries like sender=x, receiver=x
 		r.Get("/", handleGetUserMessages)

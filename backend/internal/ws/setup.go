@@ -19,14 +19,15 @@ func Setup(c *chi.Mux, db *mongo.Database) {
 
 	c.Route("/_ws", func(r chi.Router) {
 		r.Use(
-			middlewares.CheckIsUpgrade,
-			middlewares.WsHeaderMiddleware,
-			middlewares.AuthMiddleware,
+			middlewares.UpgradeChecher,
+			middlewares.WsHeader,
+			middlewares.Auth,
 		)
 
 		upgrader := gws.NewUpgrader(handler, &gws.ServerOption{
-			ParallelEnabled: true,
-			Recovery:        gws.Recovery,
+			ParallelEnabled:   true,
+			Recovery:          gws.Recovery,
+			PermessageDeflate: gws.PermessageDeflate{Enabled: true},
 		})
 
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {

@@ -31,7 +31,7 @@ func WsHeader(next http.Handler) http.Handler {
 			utils.ErrResp(w, http.StatusUnauthorized)
 			return
 		}
-		r.Header.Add("X-Session", "Bearer "+token)
+		r.Header.Add("Authorization", "Bearer "+token)
 		ctx := context.WithValue(context.Background(), chi.RouteCtxKey, r.Context().Value(chi.RouteCtxKey))
 		nc, err := st.Session.Load(ctx, token)
 		if err != nil {

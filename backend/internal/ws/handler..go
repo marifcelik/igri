@@ -29,7 +29,9 @@ func (c *wsHandler) OnOpen(conn *gws.Conn) {
 	_ = conn.SetDeadline(time.Now().Add(PingInterval + PingWait))
 }
 
-func (c *wsHandler) OnClose(conn *gws.Conn, err error) {}
+func (c *wsHandler) OnClose(conn *gws.Conn, err error) {
+	log.Info("connection closed", "err", err)
+}
 
 func (c *wsHandler) OnPing(conn *gws.Conn, payload []byte) {
 	_ = conn.SetDeadline(time.Now().Add(PingInterval + PingWait))
@@ -40,5 +42,6 @@ func (c *wsHandler) OnPong(conn *gws.Conn, payload []byte) {}
 
 func (c *wsHandler) OnMessage(conn *gws.Conn, message *gws.Message) {
 	defer message.Close()
-	conn.WriteMessage(message.Opcode, message.Bytes())
+
+	conn.WriteMessage(message.Opcode, []byte("hii"))
 }
