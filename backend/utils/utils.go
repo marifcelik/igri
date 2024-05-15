@@ -10,6 +10,11 @@ import (
 
 type M map[string]any
 
+// ContainsI checks if a string contains a substring case-insensitively
+func ContainsI(s, substr string) bool {
+	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
+}
+
 func GetIPAddr(r *http.Request) string {
 	switch {
 	case r.RemoteAddr == "127.0.0.1" || r.RemoteAddr == "::1":
