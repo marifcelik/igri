@@ -1,8 +1,13 @@
 package storage
 
 import (
+	"bufio"
 	"bytes"
+	"errors"
+	"fmt"
+	"net"
 	"net/http"
+	"strings"
 
 	"go-chat/config"
 	"go-chat/utils"
@@ -22,10 +27,14 @@ type mySession struct {
 
 func (s *mySession) LoadAndServeHeader(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		key := "X-Session"
+		key := "Authorization"
 		expiryKey := "X-Session-Expiry"
 
-		ctx, err := s.Load(r.Context(), r.Header.Get(key))
+		bearer := r.Header.Get(key)
+		token := strings.TrimPrefix(bearer, "Bearer ")
+		fmt.Printf("token: %v\n", token)
+
+		ctx, err := s.Load(r.Context(), token)
 		if err != nil {
 			log.Error("session load", "err", err)
 			utils.ErrResp(w, http.StatusInternalServerError)
@@ -43,7 +52,8 @@ func (s *mySession) LoadAndServeHeader(next http.Handler) http.Handler {
 				return
 			}
 
-			w.Header().Set(key, token)
+			// TODO extend expiry time on session commit
+			w.Header().Set(key, "Bearer "+token)
 			w.Header().Set(expiryKey, expiry.Format(http.TimeFormat))
 		}
 
@@ -68,6 +78,14 @@ func (bw *bufferedResponseWriter) WriteHeader(code int) {
 	bw.code = code
 }
 
+func (bw *bufferedResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h, ok := bw.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.New("http.Hijacker not implemented")
+	}
+	return h.Hijack()
+}
+
 func init() {
 	pool := &redis.Pool{
 		MaxIdle: 10,
@@ -79,4 +97,5 @@ func init() {
 	Session = &mySession{scs.New()}
 	Session.Store = redisstore.New(pool)
 	Session.Lifetime = config.GetExpirationTime()
+	Session.IdleTimeout = config.GetIdleTimeout()
 }
