@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"strings"
@@ -32,7 +31,6 @@ func (s *mySession) LoadAndServeHeader(next http.Handler) http.Handler {
 
 		bearer := r.Header.Get(key)
 		token := strings.TrimPrefix(bearer, "Bearer ")
-		fmt.Printf("token: %v\n", token)
 
 		ctx, err := s.Load(r.Context(), token)
 		if err != nil {
