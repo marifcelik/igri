@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net"
 	"net/http"
-	"strings"
 
 	"go-chat/config"
 	"go-chat/utils"
@@ -26,18 +25,16 @@ type mySession struct {
 
 func (s *mySession) LoadAndServeHeader(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		key := "Authorization"
+		key := "X-Session"
 		expiryKey := "X-Session-Expiry"
 
-		bearer := r.Header.Get(key)
-		token := strings.TrimPrefix(bearer, "Bearer ")
-
-		ctx, err := s.Load(r.Context(), token)
+		ctx, err := s.Load(r.Context(), r.Header.Get(key))
 		if err != nil {
 			log.Error("session load", "err", err)
 			utils.ErrResp(w, http.StatusInternalServerError)
 			return
 		}
+
 		bw := &bufferedResponseWriter{ResponseWriter: w}
 		sr := r.WithContext(ctx)
 		next.ServeHTTP(bw, sr)
@@ -51,7 +48,7 @@ func (s *mySession) LoadAndServeHeader(next http.Handler) http.Handler {
 			}
 
 			// TODO extend expiry time on session commit
-			w.Header().Set(key, "Bearer "+token)
+			w.Header().Set(key, token)
 			w.Header().Set(expiryKey, expiry.Format(http.TimeFormat))
 		}
 
