@@ -5,8 +5,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/charmbracelet/log"
+	clog "github.com/charmbracelet/log"
 )
+
+var log = clog.WithPrefix("UTILS")
 
 type M map[string]any
 
@@ -41,10 +43,18 @@ func JsonResp(w http.ResponseWriter, data any, status ...int) {
 }
 
 // TODO follow the google api design guide. see: https://cloud.google.com/apis/design/errors
-func ErrResp(w http.ResponseWriter, status int, err ...error) {
+func ErrResp(w http.ResponseWriter, status int, err ...any) {
 	var text string
 	if len(err) > 0 && err[0] != nil {
-		text = err[0].Error()
+		switch t := err[0].(type) {
+		case string:
+			text = t
+		case error:
+			text = t.Error()
+		default:
+			log.Warnf("unknown error type: %T", t)
+			text = http.StatusText(status)
+		}
 	} else {
 		text = http.StatusText(status)
 	}
@@ -63,9 +73,9 @@ func CheckErr(err error, msgParams ...string) {
 
 	if err != nil {
 		if msg != "" {
-			log.Fatal(msg, "err", err)
+			clog.Fatal(msg, "err", err)
 		} else {
-			log.Fatal(err)
+			clog.Fatal(err)
 		}
 	}
 }
