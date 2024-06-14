@@ -16,8 +16,21 @@ func Auth(next http.Handler) http.Handler {
 		user := st.Session.GetString(r.Context(), "user")
 
 		if user == "" {
-			log.WithPrefix("AUTH MW").Warn("unauthorized request", "from", utils.GetIPAddr(r))
+			log.WithPrefix("AUTH MW").Warn("unauthorized request", "header", r.Header)
 			utils.ErrResp(w, http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func LoggedIn(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := st.Session.GetString(r.Context(), "user")
+		log.Debug("user: %v\n", user)
+		if user != "" {
+			st.Session.Put(r.Context(), "warn", st.Session.GetInt(r.Context(), "warn")+1)
+			utils.JsonResp(w, utils.M{"warn": "you already logged in"}, http.StatusConflict)
 			return
 		}
 		next.ServeHTTP(w, r)
