@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net"
 	"net/http"
 	"strconv"
 
@@ -41,7 +42,7 @@ func main() {
 		w.Write([]byte(strconv.Itoa(count) + "\n"))
 	})
 
-	addr := config.GetListenAddr()
-	log.Info("Server listening on" + addr)
+	addr := net.JoinHostPort(config.C.Host, config.C.Port)
+	log.Info("Server listening on " + addr)
 	log.Fatal(http.ListenAndServe(addr, st.Session.LoadAndServeHeader(app)))
 }

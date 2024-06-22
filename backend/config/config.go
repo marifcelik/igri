@@ -66,7 +66,3 @@ func GetIdleTimeout() time.Duration {
 	log.Warn("config.GetIdleTimeout is not implemented")
 	return 0
 }
-
-func GetListenAddr() string {
-	return ":" + C.Port
-}
