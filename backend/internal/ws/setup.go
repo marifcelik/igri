@@ -15,7 +15,6 @@ import (
 func Setup(c *chi.Mux, db *mongo.Database) {
 	repo := NewWSRepo(db)
 	authRepo := auth.NewAuthRepo(db)
-	handler := NewWSHandler(repo, authRepo)
 
 	c.Route("/_ws", func(r chi.Router) {
 		r.Use(
@@ -24,22 +23,21 @@ func Setup(c *chi.Mux, db *mongo.Database) {
 			middlewares.Auth,
 		)
 
-		upgrader := gws.NewUpgrader(handler, &gws.ServerOption{
-			ParallelEnabled:   true,
-			Recovery:          gws.Recovery,
-			PermessageDeflate: gws.PermessageDeflate{Enabled: true},
-		})
+		r.Get("/", func(w http.ResponseWriter, req *http.Request) {
+			handler := NewWSHandler(repo, authRepo, req.Context())
+			upgrader := gws.NewUpgrader(handler, &gws.ServerOption{
+				ParallelEnabled:   true,
+				Recovery:          gws.Recovery,
+				PermessageDeflate: gws.PermessageDeflate{Enabled: true},
+			})
 
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			conn, err := upgrader.Upgrade(w, r)
+			conn, err := upgrader.Upgrade(w, req)
 			if err != nil {
-				log.WithPrefix("WS").Error("websocket upgrade error", "err", err, "ip", r.RemoteAddr)
+				log.WithPrefix("WS").Error("websocket upgrade error", "err", err, "ip", req.RemoteAddr)
 				utils.ErrResp(w, http.StatusInternalServerError)
 				return
 			}
-			go func() {
-				conn.ReadLoop()
-			}()
+			go conn.ReadLoop()
 		})
 	})
 }
