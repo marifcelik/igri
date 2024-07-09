@@ -11,7 +11,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/gomodule/redigo v1.9.2
 	github.com/joho/godotenv v1.5.1
-	github.com/lxzan/gws v1.8.1
+	github.com/lxzan/gws v1.8.5
 	go.mongodb.org/mongo-driver v1.14.0
 	golang.org/x/crypto v0.17.0
 )
