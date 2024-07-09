@@ -49,7 +49,7 @@ func (s *mySession) LoadAndServeHeader(next http.Handler) http.Handler {
 
 			// TODO extend expiry time on session commit
 			w.Header().Set(key, token)
-			w.Header().Set(expiryKey, expiry.Format(http.TimeFormat))
+			w.Header().Set(expiryKey, expiry.Add(Session.Lifetime).Format(http.TimeFormat))
 		}
 
 		if bw.code != 0 {
@@ -73,6 +73,7 @@ func (bw *bufferedResponseWriter) WriteHeader(code int) {
 	bw.code = code
 }
 
+// hijack needs for websocket upgrade
 func (bw *bufferedResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	h, ok := bw.ResponseWriter.(http.Hijacker)
 	if !ok {

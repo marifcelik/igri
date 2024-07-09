@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	st "go-chat/storage"
+	"go-chat/storage"
 	"go-chat/utils"
 
 	"github.com/charmbracelet/log"
@@ -13,7 +13,7 @@ import (
 
 func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user := st.Session.GetString(r.Context(), "user")
+		user := storage.Session.GetString(r.Context(), "user")
 
 		if user == "" {
 			log.WithPrefix("AUTH MW").Warn("unauthorized request", "header", r.Header)
@@ -24,15 +24,18 @@ func Auth(next http.Handler) http.Handler {
 	})
 }
 
+// i can't use this middleware because if i do i have to parse the body twice
+// TODO find a way to parse the body once or look for what other people do
 func LoggedIn(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user := st.Session.GetString(r.Context(), "user")
+		user := storage.Session.GetString(r.Context(), "user")
 		log.Debug("user: %v\n", user)
 		if user != "" {
-			st.Session.Put(r.Context(), "warn", st.Session.GetInt(r.Context(), "warn")+1)
+			storage.Session.Put(r.Context(), "warn", storage.Session.GetInt(r.Context(), "warn")+1)
 			utils.JsonResp(w, utils.M{"warn": "you already logged in"}, http.StatusConflict)
 			return
 		}
+		// log.Warn("loggedin middleware unimplemented")
 		next.ServeHTTP(w, r)
 	})
 }
@@ -44,9 +47,9 @@ func WsHeader(next http.Handler) http.Handler {
 			utils.ErrResp(w, http.StatusUnauthorized)
 			return
 		}
-		r.Header.Add("Authorization", "Bearer "+token)
+		r.Header.Add("X-Session", token)
 		ctx := context.WithValue(context.Background(), chi.RouteCtxKey, r.Context().Value(chi.RouteCtxKey))
-		nc, err := st.Session.Load(ctx, token)
+		nc, err := storage.Session.Load(ctx, token)
 		if err != nil {
 			log.Error("session load", "err", err)
 		}
