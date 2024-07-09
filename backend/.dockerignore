@@ -2,7 +2,6 @@
 
 .dockerignore
 .gitingore
-.env
 
 README.md
 Dockerfile
