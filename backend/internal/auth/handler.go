@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"go-chat/models"
-	st "go-chat/storage"
+	"go-chat/storage"
 	"go-chat/utils"
 
 	clog "github.com/charmbracelet/log"
@@ -23,6 +23,8 @@ type AuthHandler interface {
 	Login(w http.ResponseWriter, r *http.Request)
 	Logout(w http.ResponseWriter, r *http.Request)
 	Register(w http.ResponseWriter, r *http.Request)
+	// isLoggedIn(r *http.Request, u string) bool
+	// checkLoggedIn(r *http.Request, u string) bool
 	createSession(r *http.Request, u string)
 }
 
@@ -54,7 +56,7 @@ func (h *authHandler) Login(w http.ResponseWriter, r *http.Request) {
 	user, err := h.repo.GetUserByUsername(body.Username, r.Context())
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			utils.JsonResp(w, utils.M{"err": "username or password is incorrect"}, http.StatusUnauthorized)
+			utils.JsonResp(w, utils.M{"status": "error", "data": "username or password is incorrect"}, http.StatusUnauthorized)
 			return
 		}
 		log.Error(fmt.Errorf("get user by username error: %w", err))
@@ -64,25 +66,32 @@ func (h *authHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password))
 	if err != nil {
-		utils.JsonResp(w, utils.M{"err": "username or password is incorrect"}, http.StatusUnauthorized)
+		utils.JsonResp(w, utils.M{"status": "error", "data": "username or password is incorrect"}, http.StatusUnauthorized)
 		return
 	}
 
+	result := UserReturnDTO{}
+	// TODO use CopyFields function after fix
+	result.ID = user.ID.Hex()
+	result.Name = user.Name
+	result.Username = user.Username
+	result.CreatedAt = user.CreatedAt
+
 	h.createSession(r, user.Username)
 
-	utils.JsonResp(w, user)
+	utils.JsonResp(w, utils.M{"status": "success", "data": result})
 }
 
 func (h *authHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	// i use 1 minute session expration time so for now its okey
-	// TODO implement the logout
-	userSession := st.Session.Exists(r.Context(), "user")
+	// TODO complete the logout
+	userSession := storage.Session.Exists(r.Context(), "user")
 	if !userSession {
 		utils.ErrResp(w, http.StatusNotAcceptable)
 		return
 	}
 
-	err := st.Session.Destroy(r.Context())
+	err := storage.Session.Destroy(r.Context())
 	if err != nil {
 		utils.ErrResp(w, http.StatusNotAcceptable, err)
 		return
@@ -105,7 +114,11 @@ func (h *authHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Is(v.String(body.PasswordConfirm, "passwordConfirm").EqualTo(body.Password, "Passwords must be same"))
 
 	if !val.Valid() {
-		utils.JsonResp(w, val.Error(), http.StatusBadRequest)
+		utils.JsonResp(w, utils.M{
+			"status":  "error",
+			"message": "Validation error",
+			"data":    val.Error(),
+		}, http.StatusBadRequest)
 		return
 	}
 
@@ -116,7 +129,7 @@ func (h *authHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if userExist {
-		utils.JsonResp(w, utils.M{"err": "username already exists"}, http.StatusConflict)
+		utils.JsonResp(w, utils.M{"status": "error", "data": "username already exists"}, http.StatusConflict)
 		return
 	}
 
@@ -145,17 +158,43 @@ func (h *authHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Print("user created", "user", user)
 
+	result := UserReturnDTO{}
+	// TODO use CopyFields function after fix
+	result.ID = id.Hex()
+	result.Name = user.Name
+	result.Username = user.Username
+	result.CreatedAt = user.CreatedAt
+
+	// if err = utils.CopyFields(user, &result); err != nil {
+	// 	log.Error("copy fields error", "err", err)
+	// 	utils.InternalErrResp(w, err)
+	// 	return
+	// }
+	// fmt.Printf("after CopyFields function, result: %v\n", result)
+
 	// TODO find better way to login after registeration and do better error handling
 	// FIX sometimes the returned authorization header is: Bearer {\n "err": "username or password is incorrect"\n}
 	h.createSession(r, user.Username)
 
-	utils.JsonResp(w, utils.M{"id": id, "username": user.Username}, http.StatusCreated)
+	w.Header().Set("Location", fmt.Sprintf("/users/%s", id.Hex()))
+	utils.JsonResp(w, utils.M{"status": "success", "data": result}, http.StatusCreated)
 }
+
+// TODO implement the isLoggedIn and checkLoggedIn
+// func (h *authHandler) isLoggedIn(r *http.Request, u string) bool {
+// 	user := storage.Session.GetString(r.Context(), "user")
+// 	return user != ""
+// }
+
+// func (h *authHandler) checkLoggedIn(r *http.Request, u string) bool {
+// 	user := storage.Session.GetString(r.Context(), "user")
+// 	return user != "" && user == u
+// }
 
 func (h *authHandler) createSession(r *http.Request, username string) {
 	log := clog.WithPrefix("SESSION")
-	log.Info("before put", "stat", st.Session.Status(r.Context()))
-	st.Session.Put(r.Context(), "user", username)
-	fmt.Printf("create storage.Session.Keys(r.Context()): %v\n", st.Session.Keys(r.Context()))
-	log.Info("after put", "stat", st.Session.Status(r.Context()))
+	log.Info("before put", "stat", storage.Session.Status(r.Context()))
+	storage.Session.Put(r.Context(), "user", username)
+	fmt.Printf("create storage.Session.Keys(r.Context()): %v\n", storage.Session.Keys(r.Context()))
+	log.Info("after put", "stat", storage.Session.Status(r.Context()))
 }
