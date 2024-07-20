@@ -2,7 +2,9 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 
 	clog "github.com/charmbracelet/log"
@@ -66,16 +68,39 @@ func InternalErrResp(w http.ResponseWriter, err error) {
 	http.Error(w, err.Error(), http.StatusInternalServerError)
 }
 
-// Check the error and exit if its not nil.
-// The parameters after the second parameter will be joined into a single string
-func CheckErr(err error, msgParams ...string) {
-	msg := strings.Join(msgParams, ", ")
+// CopyFields copies fields from src to dst.
+// dst and src must be pointers to structs
+// FIX doesn't work
+func CopyFields(dst, src any) error {
+	dstVal := reflect.ValueOf(dst)
+	srcVal := reflect.ValueOf(src)
 
-	if err != nil {
-		if msg != "" {
-			clog.Fatal(msg, "err", err)
-		} else {
-			clog.Fatal(err)
-		}
+	if dstVal.Kind() != reflect.Ptr || dstVal.Elem().Kind() != reflect.Struct {
+		return fmt.Errorf("dst must be a pointer to a struct")
 	}
+	if srcVal.Kind() != reflect.Ptr || srcVal.Elem().Kind() != reflect.Struct {
+		return fmt.Errorf("src must be a pointer to a struct")
+	}
+
+	dstType := dstVal.Elem().Type()
+	srcType := srcVal.Elem().Type()
+
+	for i := 0; i < dstType.NumField(); i++ {
+		dstField := dstType.Field(i)
+		srcField, ok := srcType.FieldByName(dstField.Name)
+		if !ok {
+			log.Warnf("field %s not found in src", dstField.Name)
+			continue
+		}
+
+		log.Printf("dst type: %s, src type: %s", dstField.Type, srcField.Type)
+		if dstField.Type != srcField.Type {
+			log.Warnf("field %s has different types in dst and src", dstField.Name)
+			return fmt.Errorf("field %s has different types in dst and src", dstField.Name)
+		}
+
+		dstVal.Elem().Field(i).Set(srcVal.Elem().FieldByName(dstField.Name))
+	}
+
+	return nil
 }
