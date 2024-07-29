@@ -54,7 +54,8 @@ func (c *wsHandler) OnPing(conn *gws.Conn, payload []byte) {
 	// if err != nil {
 	// 	log.Error("setdeadline", "err", err)
 	// }
-	if err := conn.WritePong(nil); err != nil {
+	err := conn.WritePong(nil)
+	if err != nil {
 		log.Error("write pong", "err", err)
 	}
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 )
 
 func main() {
@@ -27,6 +28,11 @@ func main() {
 		middleware.StripSlashes,
 		middleware.Recoverer,
 	)
+
+	app.Use(cors.Handler(cors.Options{
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		ExposedHeaders: []string{"X-Session", "X-Session-Expiry"},
+	}))
 
 	// XXX may be i can create an interface for setup functions
 	auth.Setup(app, db.DB)

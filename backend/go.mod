@@ -9,6 +9,7 @@ require (
 	github.com/charmbracelet/log v0.3.1
 	github.com/cohesivestack/valgo v0.2.4
 	github.com/go-chi/chi/v5 v5.0.12
+	github.com/go-chi/cors v1.2.1
 	github.com/gomodule/redigo v1.9.2
 	github.com/joho/godotenv v1.5.1
 	github.com/lxzan/gws v1.8.5

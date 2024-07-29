@@ -37,6 +37,9 @@ func NewAuthHandler(repo *AuthRepo) AuthHandler {
 }
 
 func (h *authHandler) Login(w http.ResponseWriter, r *http.Request) {
+	// TODO remove this sleep after testing
+	time.Sleep(time.Second * 2)
+
 	body := UserLoginDTO{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		log.Warn("body parsing", "err", err)
@@ -49,7 +52,11 @@ func (h *authHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Is(v.String(body.Password, "password").Not().Blank().MinLength(8))
 
 	if !val.Valid() {
-		utils.ErrResp(w, http.StatusBadRequest, val.Error())
+		utils.JsonResp(w, utils.M{
+			"status":  "error",
+			"message": "Validation error",
+			"data":    val.Error(),
+		}, http.StatusBadRequest)
 		return
 	}
 
@@ -83,10 +90,7 @@ func (h *authHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *authHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	// i use 1 minute session expration time so for now its okey
-	// TODO complete the logout
-	userSession := storage.Session.Exists(r.Context(), "user")
-	if !userSession {
+	if !storage.Session.Exists(r.Context(), "user") {
 		utils.ErrResp(w, http.StatusNotAcceptable)
 		return
 	}
