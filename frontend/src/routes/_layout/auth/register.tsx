@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { createLazyFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 
-export const Route = createLazyFileRoute('/auth/register')({
+export const Route = createFileRoute('/_layout/auth/register')({
 	component: Register
 })
 
