@@ -33,33 +33,6 @@ type WSMessage = {
 
 // TODO redesign this page, seperate the chat list and chat content into two different components
 function Home() {
-	const [messages, setMessages] = useState<{ message: string; position: 'left' | 'right' }[]>([
-		{ message: 'Hey, how are you?', position: 'right' },
-		{ message: "I'm good, thanks! How about you?", position: 'left' },
-		{ message: "I'm doing great, thanks! Just got back from a trip.", position: 'right' },
-		{ message: 'That sounds amazing! Where did you go?', position: 'left' },
-		{ message: 'I went to the beach with some friends.', position: 'right' },
-		{ message: "That sounds like so much fun! I'm jealous.", position: 'left' },
-		{ message: 'You should come next time! We had a blast.', position: 'right' },
-		{ message: "I'd love to! Let me know when you're planning the next trip.", position: 'left' },
-		{ message: "Will do! So, what's new with you?", position: 'right' },
-		{ message: 'Not much, just work and stuff. You know how it is.', position: 'left' },
-		{ message: 'Yeah, I do. It can be tough sometimes.', position: 'right' },
-		{ message: 'Definitely. But hey, at least we have the weekends, right?', position: 'left' },
-		{ message: 'Exactly! The weekends are the best.', position: 'right' },
-		{ message: 'So, do you have any fun plans for this weekend?', position: 'left' },
-		{ message: 'Actually, I was thinking of checking out that new restaurant downtown.', position: 'right' },
-		{ message: "I've been meaning to try that place out too!", position: 'left' },
-		{ message: "Yeah, I've heard great things about it.", position: 'left' },
-		{ message: 'Definitely let me know how it is if you end up going!', position: 'right' },
-		{ message: "Will do! I'm actually thinking of going tomorrow night.", position: 'right' },
-		{ message: 'Cool, have fun!', position: 'left' },
-		{ message: 'Thanks, I will!', position: 'right' },
-		{ message: "So, how's your family doing?", position: 'left' },
-		{ message: "They're all good, thanks for asking!", position: 'right' },
-		{ message: "My mom's been bugging me to come visit again.", position: 'right' },
-		{ message: "I'm sure she misses you! You should go see her soon.", position: 'left' }
-	])
 	const [messageValue, setMessageValue] = useState('')
 	const [disabled, setDisabled] = useState(true)
 	const [messageHistory, setMessageHistory] = useState<WSMessage[]>([])
@@ -74,7 +47,7 @@ function Home() {
 	useEffect(() => {
 		if (chatContainer.current)
 			chatContainer.current.scrollTo({ top: chatContainer.current.scrollHeight, behavior: 'smooth' })
-	}, [messageHistory, messages, chatContainer])
+	}, [messageHistory, chatContainer])
 
 	useEffect(() => {
 		setDisabled(messageValue.length === 0)
