@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import Sidebar from '@/components/home/Sidebar'
 import Bubble from '@/components/home/Bubble'
 import ThemeButton from '@/components/ThemeButton'
+import { API_URL } from '@/lib/config'
 
 export const Route = createFileRoute('/home')({
 	beforeLoad: async ({ location }) => {
@@ -53,7 +54,7 @@ function Home() {
 		setDisabled(messageValue.length === 0)
 	}, [messageValue])
 
-	const { sendJsonMessage, lastJsonMessage } = useWebSocket<WSMessage>('ws://localhost:8080/_ws?token=' + token, {
+	const { sendJsonMessage, lastJsonMessage } = useWebSocket<WSMessage>('ws://' + API_URL + '/_ws?token=' + token, {
 		onOpen: () => console.log('opened'),
 		onClose: () => console.log('closed'),
 		shouldReconnect: () => true
