@@ -30,7 +30,7 @@ func main() {
 	)
 
 	app.Use(cors.Handler(cors.Options{
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "UPDATE"},
 		ExposedHeaders: []string{"X-Session", "X-Session-Expiry"},
 	}))
 
@@ -38,6 +38,11 @@ func main() {
 	auth.Setup(app, db.DB)
 	message.Setup(app)
 	ws.Setup(app, db.DB)
+
+	app.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK\n"))
+	})
 
 	app.With(middlewares.Auth).Get("/", func(w http.ResponseWriter, r *http.Request) {
 		count := storage.Session.GetInt(r.Context(), "count")
