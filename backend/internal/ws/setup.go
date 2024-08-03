@@ -9,7 +9,7 @@ import (
 	"go-chat/utils"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/lxzan/gws"
+	"github.com/marifcelik/gws"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 

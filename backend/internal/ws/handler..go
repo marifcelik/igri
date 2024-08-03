@@ -9,7 +9,7 @@ import (
 	"go-chat/storage"
 
 	clog "github.com/charmbracelet/log"
-	"github.com/lxzan/gws"
+	"github.com/marifcelik/gws"
 )
 
 // const (
