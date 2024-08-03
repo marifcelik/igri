@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"go-chat/enums"
 	"go-chat/internal/auth"
 	"go-chat/storage"
 
@@ -24,12 +23,15 @@ type wsHandler struct {
 	repo     *wsRepo
 	userRepo *auth.AuthRepo
 
-	ctx     context.Context
-	clients map[string]*gws.Conn
+	clients *gws.ConcurrentMap[string, *gws.Conn]
 }
 
-func NewWSHandler(repo *wsRepo, userRepo *auth.AuthRepo, ctx context.Context) *wsHandler {
-	return &wsHandler{repo: repo, userRepo: userRepo, ctx: ctx, clients: make(map[string]*gws.Conn)}
+func NewWSHandler(repo *wsRepo, userRepo *auth.AuthRepo) *wsHandler {
+	return &wsHandler{
+		repo:     repo,
+		userRepo: userRepo,
+		clients:  gws.NewConcurrentMap[string, *gws.Conn](16, 128),
+	}
 }
 
 func (c *wsHandler) OnOpen(conn *gws.Conn) {
@@ -39,11 +41,31 @@ func (c *wsHandler) OnOpen(conn *gws.Conn) {
 	if err != nil {
 		log.Warn("setdeadline", "err", err)
 	}
-	username := storage.Session.GetString(c.ctx, "username")
-	c.clients[username] = conn
+	username := storage.Session.GetString(conn.Context(), "user")
+	c.clients.Store(username, conn)
+	log.Info("connection opened", "from", conn.RemoteAddr(), "username", username)
 }
 
 func (c *wsHandler) OnClose(conn *gws.Conn, err error) {
+	username := storage.Session.GetString(conn.Context(), "user")
+	sharding := c.clients.GetSharding(username)
+	sharding.Lock()
+	defer sharding.Unlock()
+
+	if socket, ok := sharding.Load(username); ok {
+		key0, exits := socket.Session().Load("websocketKey")
+		if exits {
+			key0 = key0.(string)
+		}
+		key1, exits := conn.Session().Load("websocketKey")
+		if exits {
+			key1 = key1.(string)
+		}
+		if key0 == key1 {
+			sharding.Delete(username)
+		}
+	}
+
 	log.Warn("connection closed", "err", err)
 }
 
@@ -71,21 +93,22 @@ func (c *wsHandler) OnMessage(conn *gws.Conn, message *gws.Message) {
 		return
 	}
 
-	type Message struct {
-		Type enums.MessageType `json:"type"`
-		From string            `json:"from"`
-		To   string            `json:"to"`
-		Data string            `json:"data"`
-	}
+	msg := &MessageDTO{}
 
-	msg := &Message{}
-
-	err := json.Unmarshal(message.Bytes(), msg)
-	if err != nil {
+	if err := json.Unmarshal(message.Bytes(), msg); err != nil {
 		log.Warn("unmarshal message", "err", err)
 	}
 
-	log.Info("message received", "message", msg)
+	from, ok := storage.Session.Get(conn.Context(), "user").(string)
+	if !ok {
+		log.Warn("username not found in session")
+		conn.WriteString("username not found in session")
+		return
+	}
+
+	log.Info("message received", "from", from)
+
+	log.Info("message received", "message", msg.Data)
 
 	// shitty, refactor this later
 	exits, err := c.userRepo.CheckUsername(msg.From, context.TODO())
@@ -116,14 +139,19 @@ func (c *wsHandler) OnMessage(conn *gws.Conn, message *gws.Message) {
 
 	conn.WriteString("you sent the message \"" + msg.Data + "\" to " + msg.To)
 
-	to, ok := c.clients[msg.To]
-	if !ok {
+	if to, ok := c.clients.Load(msg.To); ok {
+		msgToSend, err := json.Marshal(msg)
+		if err != nil {
+			log.Error("marshal message", "err", err)
+			return
+		}
+		err = to.WriteMessage(gws.OpcodeText, msgToSend)
+		if err != nil {
+			log.Error("write message to", "err", err)
+		}
+	} else {
 		log.Warn("user not connected", "username", msg.To)
 		conn.WriteString("user not connected")
-		return
 	}
 
-	if err = to.WriteString(msg.Data); err != nil {
-		log.Error("write message to", "err", err)
-	}
 }

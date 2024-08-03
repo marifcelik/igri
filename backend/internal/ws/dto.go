@@ -2,10 +2,10 @@ package ws
 
 import "go-chat/enums"
 
-type WsMessageDTO struct {
-	Type     enums.MessageType `json:"type"`
-	Message  string            `json:"message"`
-	Sender   string            `json:"sender"`
-	Receiver string            `json:"receiver,omitempty"`
-	Group    string            `json:"group,omitempty"`
+type MessageDTO struct {
+	Type  enums.MessageType `json:"type"`
+	From  string            `json:"from"`
+	To    string            `json:"to,omitempty"`
+	Group string            `json:"group,omitempty"`
+	Data  string            `json:"data"`
 }
