@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router'
+import { createLazyFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -12,21 +12,27 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { API_URL } from '@/lib/config'
 
+type LoginData = {
+	data: {
+		id: string
+		name: string
+		username: string
+		createdAt: string
+	}
+}
+
 const LoginFormSchema = z.object({
 	username: z.string().trim().min(1, 'Username is required'),
 	password: z.string().min(6, 'Password must be at least 6 characters')
 })
 
-export const Route = createFileRoute('/login')({
-	component: Login,
-	validateSearch: z.object({
-		redirect: z.string().optional()
-	})
+export const Route = createLazyFileRoute('/login')({
+	component: Login
 })
 
 function Login() {
 	const router = useRouter()
-	const { redirect } = Route.useSearch()
+	const { redirect } = Route.useSearch<{ redirect?: string }>()
 	const navigate = useNavigate()
 
 	const [loading, setLoading] = useState(false)
@@ -41,6 +47,7 @@ function Login() {
 
 	async function handleLogin(data: z.infer<typeof LoginFormSchema>) {
 		setLoading(true)
+		// TODO clear the code
 		try {
 			const resp = await fetch(API_URL + '/auth/login', {
 				method: 'POST',
@@ -55,8 +62,11 @@ function Login() {
 				if (token === null) {
 					throw new Error('Token not found in response headers')
 				}
-				toast.success('Welcome back')
 				localStorage.setItem('token', token)
+				const response = (await resp.json()) as LoginData
+				localStorage.setItem('username', response.data.username)
+				localStorage.setItem('to', response.data.username === 'marifcelik' ? 'tıpıt' : 'marifcelik')
+				toast.success('Welcome back ' + response.data.username)
 
 				if (redirect !== undefined && redirect !== '') router.history.push(redirect)
 				else navigate({ to: '/' })
@@ -67,8 +77,8 @@ function Login() {
 					toast.error(err.message, {
 						description:
 							err.data instanceof Object
-							? Object.values(err.data).map((t, i) => <p key={i}>{t}</p>)
-							: err.data,
+								? Object.values(err.data).map((t, i) => <p key={i}>&middot; {t}</p>)
+								: err.data,
 						duration: 5000
 					})
 				} else {

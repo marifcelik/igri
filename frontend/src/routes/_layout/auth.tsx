@@ -9,7 +9,7 @@ function AuthLayout() {
 		<div className="p-2">
 			auth layout <br />
 			<div className="p-5 border-2 w-56">
-				<Link to="/auth/login" className="[&.active]:font-bold">
+				<Link to="/login" className="[&.active]:font-bold">
 					login
 				</Link>
 				<br />
