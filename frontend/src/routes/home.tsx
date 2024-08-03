@@ -54,7 +54,7 @@ function Home() {
 		setDisabled(messageValue.length === 0)
 	}, [messageValue])
 
-	const { sendJsonMessage, lastJsonMessage } = useWebSocket<WSMessage>('ws://' + API_URL + '/_ws?token=' + token, {
+	const { sendJsonMessage, lastJsonMessage } = useWebSocket<WSMessage>('wss://' + API_URL + '/_ws?token=' + token, {
 		onOpen: () => console.log('opened'),
 		onClose: () => console.log('closed'),
 		shouldReconnect: () => true
