@@ -34,24 +34,66 @@ export default function Sidebar() {
 			message: 'Morning coffee is the best! ☕',
 			time: '30m',
 			image: '/placeholder-user.jpg'
+		},
+		{
+			name: 'Anakin Skywalker',
+			message: 'I am the chosen one!',
+			time: '1d',
+			image: '/placeholder-user.jpg'
+		},
+		{
+			name: 'Finn Mertens',
+			message: 'Adventure time!',
+			time: '1d',
+			image: '/placeholder-user.jpg'
+		},
+		{
+			name: 'Bruce Wayne',
+			message: 'I am not Batman',
+			time: 'just now',
+			image: '/placeholder-user.jpg'
+		},
+		{
+			name: 'Cooper',
+			message: 'We are not alone',
+			time: '??',
+			image: '/placeholder-user.jpg'
+		},
+		{
+			name: 'Rorschach',
+			message: 'The end is nigh',
+			time: '1w',
+			image: '/placeholder-user.jpg'
+		},
+		{
+			name: 'Miles Morales',
+			message: 'Hey, I might be late today',
+			time: '1h',
+			image: '/placeholder-user.jpg'
+		},
+		{
+			name: 'James Howlett',
+			message: 'fuck off',
+			time: 'just now',
+			image: '/placeholder-user.jpg'
 		}
 	]
 
 	return (
-		<div className="bg-muted/20 p-3 border-r">
-			<div className="flex items-center justify-between space-x-4">
-				<div className="font-medium text-sm">Chats</div>
-				<Button variant="ghost" size="icon" className="rounded-full w-8 h-8">
-					<PlusIcon className="h-4 w-4" />
-					<span className="sr-only">New chat</span>
-				</Button>
-			</div>
-			<div className="py-4">
-				<form>
+		<div className="bg-muted/20 p-3 border-r overflow-hidden h-full">
+			<div className="h-24">
+				<div className="flex items-center justify-between space-x-4">
+					<div className="font-medium text-sm">Chats</div>
+					<Button variant="ghost" size="icon" className="rounded-full w-8 h-8">
+						<PlusIcon className="h-4 w-4" />
+						<span className="sr-only">New chat</span>
+					</Button>
+				</div>
+				<div className="py-4">
 					<Input placeholder="Search" className="h-8" />
-				</form>
+				</div>
 			</div>
-			<div className="grid gap-2">
+			<div className="h-[calc(100%-6rem)] overflow-y-scroll">
 				{persons.map((person, index) => (
 					<Person key={index} {...person} />
 				))}

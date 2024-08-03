@@ -8,7 +8,7 @@ export default function Person({
 	message
 }: { name: string; image: string; time: string; message: string }) {
 	return (
-		<Link href="#" className="flex items-center gap-4 p-2 rounded-lg hover:bg-muted/50">
+		<Link href="#" className="flex items-center gap-4 p-2 my-2 rounded-lg hover:bg-muted/50">
 			<Avatar className="border w-10 h-10">
 				<AvatarImage src={image} />
 				<AvatarFallback>
