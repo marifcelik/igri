@@ -54,11 +54,14 @@ function Home() {
 		setDisabled(messageValue.length === 0)
 	}, [messageValue])
 
-	const { sendJsonMessage, lastJsonMessage } = useWebSocket<WSMessage>('wss://' + API_URL + '/_ws?token=' + token, {
-		onOpen: () => console.log('opened'),
-		onClose: () => console.log('closed'),
-		shouldReconnect: () => true
-	})
+	const { sendJsonMessage, lastJsonMessage } = useWebSocket<WSMessage>(
+		API_URL.replace('http', 'ws') + '/_ws?token=' + token,
+		{
+			onOpen: () => console.log('opened'),
+			onClose: () => console.log('closed'),
+			shouldReconnect: () => true
+		}
+	)
 
 	useEffect(() => {
 		if (lastJsonMessage) {
