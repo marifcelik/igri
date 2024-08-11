@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { API_URL } from '@/lib/config'
+import { UserProvider } from '@/context/userContext'
 
 type LoginData = {
 	data: {
@@ -27,7 +28,11 @@ const LoginFormSchema = z.object({
 })
 
 export const Route = createLazyFileRoute('/login')({
-	component: Login
+	component: () => (
+		<UserProvider>
+			<Login />
+		</UserProvider>
+	)
 })
 
 function Login() {
