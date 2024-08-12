@@ -115,7 +115,7 @@ func (h *wsHandler) OnMessage(conn *gws.Conn, message *gws.Message) {
 
 	log.Info("message received", "from", from, "message", msg.Data)
 
-	// TODO shitty, refactor this later
+	// shitty, refactor this later
 	exits, err := h.userRepo.CheckUsername(msg.Sender, conn.Context())
 	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 		log.Error("check username", "err", err)
@@ -142,14 +142,15 @@ func (h *wsHandler) OnMessage(conn *gws.Conn, message *gws.Message) {
 
 	// TODO save message to db
 	err = h.saveMessage(msg, conn.Context())
-	if err != nil && errors.Is(err, primitive.ErrInvalidHex) {
+	if err != nil {
+		// TODO handle invalid id error and log it
 		log.Error("save message", "err", err)
 		conn.WriteString("server error")
 		return
 	}
 
 	if to, ok := h.clients.Load(msg.Receiver); ok {
-		err = to.WriteMessage(gws.OpcodeText, message.Bytes())
+		err = to.WriteString(message.Data.String())
 		if err != nil {
 			log.Error("write message to", "err", err)
 		}
