@@ -18,8 +18,8 @@ type MessageType int
 // )
 
 const (
-	Normal_MessageType MessageType = iota
-	Group_MessageType
+	NormalMessage MessageType = iota
+	GroupMessage
 )
 
 func (m MessageType) String() string {

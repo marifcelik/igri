@@ -10,6 +10,8 @@ type M struct {
 	ID        primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
 	CreatedAt time.Time          `json:"createdAt,omitempty" bson:"createdAt,omitempty"`
 	UpdatedAt time.Time          `json:"updatedAt,omitempty" bson:"updatedAt,omitempty"`
+	DeletedAt time.Time          `json:"deletedAt,omitempty" bson:"deletedAt,omitempty"`
+	Version   int                `json:"version,omitempty" bson:"version,omitempty"`
 }
 
 type User struct {
