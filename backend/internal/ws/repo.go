@@ -9,23 +9,33 @@ import (
 )
 
 type wsRepo struct {
-	users    *mongo.Collection
 	messages *mongo.Collection
 }
 
 func NewWSRepo(db *mongo.Database) *wsRepo {
-	return &wsRepo{
-		users:    db.Collection("users"),
-		messages: db.Collection("messages"),
-	}
+	return &wsRepo{messages: db.Collection("messages")}
 }
 
-func (r *wsRepo) GetUserByUsername(username string, ctx context.Context) (models.User, error) {
-	var user models.User
-	result := r.users.FindOne(ctx, bson.M{"username": username})
-	if result.Err() != nil {
-		return user, result.Err()
+/* TODO research the use of generic methods to write/read user and group messages
+without seperate methods */
+
+func (r *wsRepo) GetMessages(ctx context.Context, startEnd ...int) ([]models.UserMessage, error) {
+	var messages []models.UserMessage
+	cursor, err := r.messages.Find(ctx, bson.D{})
+	if err != nil {
+		return messages, err
 	}
-	err := result.Decode(&user)
-	return user, err
+	defer cursor.Close(ctx)
+	err = cursor.All(ctx, &messages)
+	return messages, err
+}
+
+func (r *wsRepo) SaveMessage(message models.UserMessage, ctx context.Context) error {
+	_, err := r.messages.InsertOne(ctx, message)
+	return err
+}
+
+func (r *wsRepo) SaveGroupMessage(message models.GroupMessage, ctx context.Context) error {
+	_, err := r.messages.InsertOne(ctx, message)
+	return err
 }

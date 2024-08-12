@@ -3,13 +3,18 @@ package ws
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"time"
 
+	"go-chat/enums"
 	"go-chat/internal/auth"
+	"go-chat/models"
 	"go-chat/storage"
 
 	clog "github.com/charmbracelet/log"
 	"github.com/marifcelik/gws"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // const (
@@ -34,7 +39,7 @@ func NewWSHandler(repo *wsRepo, userRepo *auth.AuthRepo) *wsHandler {
 	}
 }
 
-func (c *wsHandler) OnOpen(conn *gws.Conn) {
+func (h *wsHandler) OnOpen(conn *gws.Conn) {
 	// XXX this is a workaround for the close error
 	// its basically disable the deadline
 	err := conn.SetDeadline(time.Time{})
@@ -42,13 +47,13 @@ func (c *wsHandler) OnOpen(conn *gws.Conn) {
 		log.Warn("setdeadline", "err", err)
 	}
 	username := storage.Session.GetString(conn.Context(), "user")
-	c.clients.Store(username, conn)
+	h.clients.Store(username, conn)
 	log.Info("connection opened", "from", conn.RemoteAddr(), "username", username)
 }
 
-func (c *wsHandler) OnClose(conn *gws.Conn, err error) {
+func (h *wsHandler) OnClose(conn *gws.Conn, err error) {
 	username := storage.Session.GetString(conn.Context(), "user")
-	sharding := c.clients.GetSharding(username)
+	sharding := h.clients.GetSharding(username)
 	sharding.Lock()
 	defer sharding.Unlock()
 
@@ -57,10 +62,12 @@ func (c *wsHandler) OnClose(conn *gws.Conn, err error) {
 		if exits {
 			key0 = key0.(string)
 		}
+
 		key1, exits := conn.Session().Load("websocketKey")
 		if exits {
 			key1 = key1.(string)
 		}
+
 		if key0 == key1 {
 			sharding.Delete(username)
 		}
@@ -69,7 +76,7 @@ func (c *wsHandler) OnClose(conn *gws.Conn, err error) {
 	log.Warn("connection closed", "err", err)
 }
 
-func (c *wsHandler) OnPing(conn *gws.Conn, payload []byte) {
+func (h *wsHandler) OnPing(conn *gws.Conn, payload []byte) {
 	log.Info("ping received", "from", conn.RemoteAddr())
 	// FIX recall SetDeadline is not working
 	// err := conn.SetDeadline(time.Time{})
@@ -82,20 +89,20 @@ func (c *wsHandler) OnPing(conn *gws.Conn, payload []byte) {
 	}
 }
 
-func (c *wsHandler) OnPong(conn *gws.Conn, payload []byte) {}
+func (h *wsHandler) OnPong(conn *gws.Conn, payload []byte) {}
 
-func (c *wsHandler) OnMessage(conn *gws.Conn, message *gws.Message) {
+func (h *wsHandler) OnMessage(conn *gws.Conn, message *gws.Message) {
 	defer message.Close()
 
 	// for chrome
 	if b := message.Bytes(); len(b) == 4 && string(b) == "ping" {
-		c.OnPing(conn, nil)
+		h.OnPing(conn, nil)
 		return
 	}
 
-	msg := &MessageDTO{}
+	msg := MessageDTO{}
 
-	if err := json.Unmarshal(message.Bytes(), msg); err != nil {
+	if err := json.Unmarshal(message.Bytes(), &msg); err != nil {
 		log.Warn("unmarshal message", "err", err)
 	}
 
@@ -106,52 +113,88 @@ func (c *wsHandler) OnMessage(conn *gws.Conn, message *gws.Message) {
 		return
 	}
 
-	log.Info("message received", "from", from)
+	log.Info("message received", "from", from, "message", msg.Data)
 
-	log.Info("message received", "message", msg.Data)
-
-	// shitty, refactor this later
-	exits, err := c.userRepo.CheckUsername(msg.From, context.TODO())
-	if err != nil {
+	// TODO shitty, refactor this later
+	exits, err := h.userRepo.CheckUsername(msg.Sender, conn.Context())
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 		log.Error("check username", "err", err)
 		conn.WriteString("server error")
 		return
 	}
-
 	if !exits {
-		log.Warn("user not found", "username", msg.From)
+		log.Warn("user not found", "username", msg.Sender)
 		conn.WriteString("user in \"from\" field is not found")
 		return
 	}
 
-	exits, err = c.userRepo.CheckUsername(msg.To, context.TODO())
-	if err != nil {
+	exits, err = h.userRepo.CheckUsername(msg.Receiver, conn.Context())
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 		log.Error("check username", "err", err)
 		conn.WriteString("server error")
 		return
 	}
-
 	if !exits {
-		log.Warn("user not found", "username", msg.To)
+		log.Warn("user not found", "username", msg.Receiver)
 		conn.WriteString("user in \"to\" field is not found")
 		return
 	}
 
-	conn.WriteString("you sent the message \"" + msg.Data + "\" to " + msg.To)
+	// TODO save message to db
+	err = h.saveMessage(msg, conn.Context())
+	if err != nil && errors.Is(err, primitive.ErrInvalidHex) {
+		log.Error("save message", "err", err)
+		conn.WriteString("server error")
+		return
+	}
 
-	if to, ok := c.clients.Load(msg.To); ok {
-		msgToSend, err := json.Marshal(msg)
-		if err != nil {
-			log.Error("marshal message", "err", err)
-			return
-		}
-		err = to.WriteMessage(gws.OpcodeText, msgToSend)
+	if to, ok := h.clients.Load(msg.Receiver); ok {
+		err = to.WriteMessage(gws.OpcodeText, message.Bytes())
 		if err != nil {
 			log.Error("write message to", "err", err)
 		}
 	} else {
-		log.Warn("user not connected", "username", msg.To)
+		log.Warn("user not connected", "username", msg.Receiver)
 		conn.WriteString("user not connected")
 	}
+}
 
+// saveMessage checks the type of the message and saves it to the database
+func (h *wsHandler) saveMessage(msg MessageDTO, ctx context.Context) error {
+	sender, err := primitive.ObjectIDFromHex(msg.Sender)
+	if err != nil {
+		return err
+	}
+
+	switch msg.Type {
+	case enums.NormalMessage:
+		receiver, err := primitive.ObjectIDFromHex(msg.Receiver)
+		if err != nil {
+			return err
+		}
+
+		message := models.UserMessage{
+			SenderID:   sender,
+			ReceiverID: receiver,
+			Message:    msg.Data,
+		}
+		return h.repo.SaveMessage(message, ctx)
+
+	case enums.GroupMessage:
+		group, err := primitive.ObjectIDFromHex(msg.Group)
+		if err != nil {
+			return err
+		}
+
+		message := models.GroupMessage{
+			SenderID: sender,
+			GroupID:  group,
+			Message:  msg.Data,
+		}
+		return h.repo.SaveGroupMessage(message, ctx)
+
+	default:
+		log.Warn("unknown message type", "type", msg.Type)
+		return errors.New("unknown message type")
+	}
 }

@@ -1,7 +1,6 @@
 package ws
 
 import (
-	"context"
 	"net/http"
 
 	"go-chat/internal/auth"
@@ -13,14 +12,16 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type WSSession struct {
-	ctx context.Context
-}
-
 func Setup(c *chi.Mux, db *mongo.Database) {
 	repo := NewWSRepo(db)
 	authRepo := auth.NewAuthRepo(db)
 	handler := NewWSHandler(repo, authRepo)
+
+	upgrader := gws.NewUpgrader(handler, &gws.ServerOption{
+		ParallelEnabled:   true,
+		Recovery:          gws.Recovery,
+		PermessageDeflate: gws.PermessageDeflate{Enabled: true},
+	})
 
 	c.Route("/_ws", func(r chi.Router) {
 		r.Use(
@@ -30,12 +31,6 @@ func Setup(c *chi.Mux, db *mongo.Database) {
 		)
 
 		r.Get("/", func(w http.ResponseWriter, req *http.Request) {
-			upgrader := gws.NewUpgrader(handler, &gws.ServerOption{
-				ParallelEnabled:   true,
-				Recovery:          gws.Recovery,
-				PermessageDeflate: gws.PermessageDeflate{Enabled: true},
-			})
-
 			conn, err := upgrader.Upgrade(w, req)
 			if err != nil {
 				log.WithPrefix("WS").Error("websocket upgrade error", "err", err, "ip", req.RemoteAddr)
