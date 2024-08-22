@@ -8,9 +8,9 @@ import (
 
 type M struct {
 	ID        primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
-	CreatedAt time.Time          `json:"createdAt,omitempty" bson:"createdAt,omitempty"`
-	UpdatedAt time.Time          `json:"updatedAt,omitempty" bson:"updatedAt,omitempty"`
-	DeletedAt time.Time          `json:"deletedAt,omitempty" bson:"deletedAt,omitempty"`
+	CreatedAt time.Time          `json:"createdAt,omitempty" bson:"created_at,omitempty"`
+	UpdatedAt time.Time          `json:"updatedAt,omitempty" bson:"updated_at,omitempty"`
+	DeletedAt time.Time          `json:"deletedAt,omitempty" bson:"deleted_at,omitempty"`
 	Version   int                `json:"version,omitempty" bson:"version,omitempty"`
 }
 
@@ -24,8 +24,8 @@ type User struct {
 type UserMessage struct {
 	M          `bson:",inline"`
 	Message    string             `json:"text,omitempty" bson:"text,omitempty"`
-	SenderID   primitive.ObjectID `json:"senderId,omitempty" bson:"senderId,omitempty"`
-	ReceiverID primitive.ObjectID `json:"receiverId,omitempty" bson:"receiverId,omitempty"`
+	SenderID   primitive.ObjectID `json:"senderId,omitempty" bson:"sender_id,omitempty"`
+	ReceiverID primitive.ObjectID `json:"receiverId,omitempty" bson:"receiver_id,omitempty"`
 }
 
 type Group struct {
@@ -37,7 +37,7 @@ type Group struct {
 type GroupMessage struct {
 	M        `bson:",inline"`
 	Message  string             `json:"text,omitempty" bson:"text,omitempty"`
-	GroupID  primitive.ObjectID `json:"groupId,omitempty" bson:"groupId,omitempty"`
-	SenderID primitive.ObjectID `json:"senderId,omitempty" bson:"senderId,omitempty"`
+	GroupID  primitive.ObjectID `json:"groupId,omitempty" bson:"group_id,omitempty"`
+	SenderID primitive.ObjectID `json:"senderId,omitempty" bson:"sender_id,omitempty"`
 	// SeenByIDs []string           `json:"seenBy,omitempty" bson:"seenBy,omitempty"`
 }

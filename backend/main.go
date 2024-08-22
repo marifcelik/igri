@@ -36,7 +36,7 @@ func main() {
 
 	// XXX may be i can create an interface for setup functions
 	auth.Setup(app, db.DB)
-	message.Setup(app)
+	message.Setup(app, db.DB)
 	ws.Setup(app, db.DB)
 
 	app.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {

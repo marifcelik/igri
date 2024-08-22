@@ -15,7 +15,7 @@ var C config
 type config struct {
 	AppEnv     string `envDefault:"dev"`
 	MongoURI   string `env:"MONGO_URI,expand" envDefault:"mongodb://localhost:27017"`
-	MongoName  string `envDefault:"go-chat"`
+	MongoName  string `envDefault:"go_chat"`
 	RedisURL   string `env:"REDIS_URL,expand"`
 	Host       string `envDefault:"localhost"`
 	Port       string `envDefault:"8085"`

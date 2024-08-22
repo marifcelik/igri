@@ -32,7 +32,7 @@ func init() {
 	DB.Collection("users").Indexes().CreateOne(
 		context.Background(),
 		mongo.IndexModel{
-			Keys:    map[string]interface{}{"username": 1},
+			Keys:    map[string]any{"username": 1},
 			Options: options.Index().SetUnique(true),
 		})
 }

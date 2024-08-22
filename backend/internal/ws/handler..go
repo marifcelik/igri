@@ -83,8 +83,7 @@ func (h *wsHandler) OnPing(conn *gws.Conn, payload []byte) {
 	// if err != nil {
 	// 	log.Error("setdeadline", "err", err)
 	// }
-	err := conn.WritePong(nil)
-	if err != nil {
+	if err := conn.WritePong(nil); err != nil {
 		log.Error("write pong", "err", err)
 	}
 }
@@ -140,7 +139,6 @@ func (h *wsHandler) OnMessage(conn *gws.Conn, message *gws.Message) {
 		return
 	}
 
-	// TODO save message to db
 	err = h.saveMessage(msg, conn.Context())
 	if err != nil {
 		// TODO handle invalid id error and log it
