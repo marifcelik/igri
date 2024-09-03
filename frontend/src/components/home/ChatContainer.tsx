@@ -1,16 +1,15 @@
-import { useEffect, useRef } from 'react'
+import { useContext, useEffect, useRef } from 'react'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
-import useChat from '@/hooks/useChat'
 import { useLocalStorage } from '@uidotdev/usehooks'
+import { ChatContext } from '@/context/chatContext'
 import Bubble from './Bubble'
 
 export default function ChatContainer() {
 	const [username] = useLocalStorage<string>('username')
+	const [autoAnimateRef] = useAutoAnimate<HTMLDivElement>({ duration: 100 })
 
 	const chatContainer = useRef<HTMLDivElement | null>(null)
-	const [autoAnimateRef] = useAutoAnimate<HTMLDivElement>()
-
-	const { messageHistory } = useChat()
+	const { messageHistory } = useContext(ChatContext)!
 
 	useEffect(() => {
 		if (chatContainer.current)
@@ -20,13 +19,11 @@ export default function ChatContainer() {
 	return (
 		<div ref={chatContainer} className="h-[calc(100%-8rem)] overflow-y-scroll p-5">
 			<div ref={autoAnimateRef} className="h-full">
-				{messageHistory.map((message, i) => {
-					return (
-						<Bubble key={i} position={message.from === username ? 'right' : 'left'}>
-							{message.data}
-						</Bubble>
-					)
-				})}
+				{messageHistory.map((message, i) => (
+					<Bubble key={i} position={message.sender === username ? 'right' : 'left'}>
+						{message.data}
+					</Bubble>
+				))}
 			</div>
 		</div>
 	)

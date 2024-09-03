@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import { createLazyFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -10,8 +10,8 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { UserContext } from '@/context/userContext'
 import { API_URL } from '@/lib/config'
-import { UserProvider } from '@/context/userContext'
 
 type LoginData = {
 	data: {
@@ -28,11 +28,7 @@ const LoginFormSchema = z.object({
 })
 
 export const Route = createLazyFileRoute('/login')({
-	component: () => (
-		<UserProvider>
-			<Login />
-		</UserProvider>
-	)
+	component: Login
 })
 
 function Login() {
@@ -42,12 +38,16 @@ function Login() {
 
 	const [loading, setLoading] = useState(false)
 
+	const { setUser } = useContext(UserContext)!
+
 	const form = useForm<z.infer<typeof LoginFormSchema>>({
 		resolver: zodResolver(LoginFormSchema),
 		defaultValues: {
 			username: '',
 			password: ''
-		}
+		},
+		// FIX doesn't focus the form
+		shouldFocusError: true
 	})
 
 	async function handleLogin(data: z.infer<typeof LoginFormSchema>) {
@@ -64,14 +64,16 @@ function Login() {
 
 			if (resp.ok) {
 				const token = resp.headers.get('x-session')
-				if (token === null) {
-					throw new Error('Token not found in response headers')
-				}
-				localStorage.setItem('token', token)
-				const response = (await resp.json()) as LoginData
-				localStorage.setItem('username', response.data.username)
-				localStorage.setItem('to', response.data.username === 'marifcelik' ? 'tıpıt' : 'marifcelik')
-				toast.success('Welcome back ' + response.data.username)
+				if (token === null) throw new Error('Token not found in response headers')
+
+				const { data } = (await resp.json()) as LoginData
+				localStorage.setItem('to', data.username === '"marifcelik"' ? '"tıpıt"' : '"marifcelik"')
+				setUser({
+					id: data.id,
+					username: data.username,
+					token: token
+				})
+				toast.success('Welcome back ' + data.username)
 
 				if (redirect !== undefined && redirect !== '') router.history.push(redirect)
 				else navigate({ to: '/' })

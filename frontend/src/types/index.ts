@@ -8,8 +8,8 @@ for the "actual" message type like text, image, video, etc. */
 
 export type WSMessage = {
 	type: MessageType
-	from: string
-	to?: string
+	sender: string
+	receiver?: string
 	data: string
 	group?: string
 }
