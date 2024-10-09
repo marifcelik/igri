@@ -27,22 +27,17 @@ func main() {
 		middleware.RedirectSlashes,
 		middleware.StripSlashes,
 		middleware.Recoverer,
+		middleware.Heartbeat("/healthz"),
+		cors.Handler(cors.Options{
+			AllowedMethods: []string{"DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT", "UPDATE"},
+			ExposedHeaders: []string{"X-Session", "X-Session-Expiry"},
+		}),
 	)
-
-	app.Use(cors.Handler(cors.Options{
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "UPDATE"},
-		ExposedHeaders: []string{"X-Session", "X-Session-Expiry"},
-	}))
 
 	// XXX may be i can create an interface for setup functions
 	auth.Setup(app, db.DB)
 	message.Setup(app, db.DB)
 	ws.Setup(app, db.DB)
-
-	app.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK\n"))
-	})
 
 	app.With(middlewares.Auth).Get("/", func(w http.ResponseWriter, r *http.Request) {
 		count := storage.Session.GetInt(r.Context(), "count")
