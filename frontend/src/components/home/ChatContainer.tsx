@@ -6,7 +6,7 @@ import Bubble from './Bubble'
 
 export default function ChatContainer() {
 	const [username] = useLocalStorage<string>('username')
-	const [autoAnimateRef] = useAutoAnimate<HTMLDivElement>({ duration: 100 })
+	const [autoAnimateRef] = useAutoAnimate<HTMLDivElement>({ duration: 100, easing: 'linear' })
 
 	const chatContainer = useRef<HTMLDivElement | null>(null)
 	const { messageHistory } = useContext(ChatContext)!
@@ -20,7 +20,7 @@ export default function ChatContainer() {
 		<div ref={chatContainer} className="h-[calc(100%-8rem)] overflow-y-scroll p-5">
 			<div ref={autoAnimateRef} className="h-full">
 				{messageHistory.map((message, i) => (
-					<Bubble key={i} position={message.sender === username ? 'right' : 'left'}>
+					<Bubble key={i} position={message.senderID === username ? 'right' : 'left'}>
 						{message.data}
 					</Bubble>
 				))}
