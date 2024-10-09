@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"go-chat/enums"
@@ -112,9 +113,9 @@ func (h *wsHandler) OnMessage(conn *gws.Conn, message *gws.Message) {
 		return
 	}
 
-	log.Info("message received", "from", from, "message", msg.Data)
+	log.Info("message received", "from", from, "message", msg)
 
-	// shitty, refactor this later
+	// TODO shitty, refactor this later
 	exits, err := h.userRepo.CheckUsername(msg.Sender, conn.Context())
 	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 		log.Error("check username", "err", err)
@@ -122,7 +123,7 @@ func (h *wsHandler) OnMessage(conn *gws.Conn, message *gws.Message) {
 		return
 	}
 	if !exits {
-		log.Warn("user not found", "username", msg.Sender)
+		log.Warn("sender not found", "username", msg.Sender)
 		conn.WriteString("user in \"from\" field is not found")
 		return
 	}
@@ -134,7 +135,7 @@ func (h *wsHandler) OnMessage(conn *gws.Conn, message *gws.Message) {
 		return
 	}
 	if !exits {
-		log.Warn("user not found", "username", msg.Receiver)
+		log.Warn("receiver not found", "username", msg.Receiver)
 		conn.WriteString("user in \"to\" field is not found")
 		return
 	}
@@ -162,14 +163,15 @@ func (h *wsHandler) OnMessage(conn *gws.Conn, message *gws.Message) {
 func (h *wsHandler) saveMessage(msg MessageDTO, ctx context.Context) error {
 	sender, err := primitive.ObjectIDFromHex(msg.Sender)
 	if err != nil {
-		return err
+		log.Error("invalid sender id", "id", msg.Sender, "err", err)
+		return fmt.Errorf("invalid sender id: %w", err)
 	}
 
 	switch msg.Type {
 	case enums.NormalMessage:
 		receiver, err := primitive.ObjectIDFromHex(msg.Receiver)
 		if err != nil {
-			return err
+			return fmt.Errorf("invalid receiver id: %w", err)
 		}
 
 		message := models.UserMessage{
@@ -182,7 +184,7 @@ func (h *wsHandler) saveMessage(msg MessageDTO, ctx context.Context) error {
 	case enums.GroupMessage:
 		group, err := primitive.ObjectIDFromHex(msg.Group)
 		if err != nil {
-			return err
+			return fmt.Errorf("invalid group id: %w", err)
 		}
 
 		message := models.GroupMessage{
