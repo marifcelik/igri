@@ -19,19 +19,6 @@ func ContainsI(s, substr string) bool {
 	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
 
-func GetIPAddr(r *http.Request) string {
-	switch {
-	case r.RemoteAddr == "127.0.0.1" || r.RemoteAddr == "::1":
-		return r.RemoteAddr
-	case len(r.Header.Get("X-Forwarded-For")) > 0:
-		return r.Header.Get("X-Forwarded-For")
-	case len(r.Header.Get("X-Real-IP")) > 0:
-		return r.Header.Get("X-Real-IP")
-	default:
-		return strings.Split(r.RemoteAddr, ":")[0]
-	}
-}
-
 func JsonResp(w http.ResponseWriter, data any, status ...int) {
 	w.Header().Set("Content-Type", "application/json")
 	if len(status) > 0 {
@@ -53,6 +40,11 @@ func ErrResp(w http.ResponseWriter, status int, err ...any) {
 			text = t
 		case error:
 			text = t.Error()
+		// XXX how come I can't check if err itself is a slice, but I can check err[0]?
+		case []error:
+			for _, e := range t {
+				text += e.Error() + "\n"
+			}
 		default:
 			log.Warnf("unknown error type: %T", t)
 			text = http.StatusText(status)
