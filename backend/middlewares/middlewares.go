@@ -42,25 +42,38 @@ func LoggedIn(next http.Handler) http.Handler {
 
 func WsHeader(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := r.URL.Query().Get("token")
+		// XXX i am not sure if using the goto statement is a good idea, look for it later
+		var (
+			token string
+			err   error
+			ctx   context.Context
+			nc    context.Context
+			sr    *http.Request
+		)
+
+		token = r.URL.Query().Get("token")
 		if token == "" {
-			utils.ErrResp(w, http.StatusUnauthorized)
-			return
+			goto unauthorized
 		}
 		r.Header.Add("X-Session", token)
-		ctx := context.WithValue(context.Background(), chi.RouteCtxKey, r.Context().Value(chi.RouteCtxKey))
-		nc, err := storage.Session.Load(ctx, token)
+		ctx = context.WithValue(context.Background(), chi.RouteCtxKey, r.Context().Value(chi.RouteCtxKey))
+		nc, err = storage.Session.Load(ctx, token)
 		if err != nil {
 			log.Error("session load", "err", err)
+			goto unauthorized
 		}
-		sr := r.WithContext(nc)
+		sr = r.WithContext(nc)
 		next.ServeHTTP(w, sr)
+
+	unauthorized:
+		utils.ErrResp(w, http.StatusUnauthorized)
 	})
 }
 
 func UpgradeChecher(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !(utils.ContainsI(r.Header.Get("connection"), "upgrade") && utils.ContainsI(r.Header.Get("upgrade"), "websocket")) {
+		connHeader, upgradeHeader := r.Header.Get("connection"), r.Header.Get("upgrade")
+		if !(utils.ContainsI(connHeader, "upgrade") && utils.ContainsI(upgradeHeader, "websocket")) {
 			utils.ErrResp(w, http.StatusUpgradeRequired)
 			return
 		}
