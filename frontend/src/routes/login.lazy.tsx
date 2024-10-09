@@ -67,7 +67,7 @@ function Login() {
 				if (token === null) throw new Error('Token not found in response headers')
 
 				const { data } = (await resp.json()) as LoginData
-				localStorage.setItem('to', data.username === '"marifcelik"' ? '"tıpıt"' : '"marifcelik"')
+				// setReceiver(data.username === '"marifcelik"' ? '"tipit"' : '"marifcelik"')
 				setUser({
 					id: data.id,
 					username: data.username,

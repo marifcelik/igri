@@ -13,6 +13,7 @@ export const Route = createRootRoute({
 		const [username, setUsername] = useLocalStorage<string>('username')
 		const [token, setToken] = useLocalStorage<string>('token')
 
+		const [receiver, setReceiver] = useState<string | null>(null)
 		const [user, setUser] = useState<UserFields>({ id, username, token })
 		const [messageHistory, setMessageHistory] = useState<WSMessage[]>([])
 
@@ -25,7 +26,7 @@ export const Route = createRootRoute({
 
 		return (
 			<>
-				<ChatContext.Provider value={{ messageHistory, setMessageHistory }}>
+				<ChatContext.Provider value={{ messageHistory, setMessageHistory, receiver, setReceiver }}>
 					<UserContext.Provider value={{ user, setUser: handleSetUser }}>
 						<Outlet />
 					</UserContext.Provider>

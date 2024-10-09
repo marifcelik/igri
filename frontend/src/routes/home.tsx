@@ -1,7 +1,6 @@
 import { useState, useEffect, type FormEvent, useContext } from 'react'
 import useWebSocket, { ReadyState } from 'react-use-websocket'
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { useLocalStorage } from '@uidotdev/usehooks'
 import { toast } from 'sonner'
 import Sidebar from '@/components/home/Sidebar'
 import PersonInfo from '@/components/home/PersonInfo'
@@ -34,7 +33,7 @@ function Home() {
 	const navigate = Route.useNavigate()
 
 	// TODO find better place for to, maybe in chat context
-	const [to] = useLocalStorage<string>('to')
+	const { receiver } = useContext(ChatContext)!
 
 	const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket<WSMessage>(
 		API_URL.replace('http', 'ws') + '/_ws?token=' + user.token,
@@ -43,7 +42,8 @@ function Home() {
 			onClose: () => console.log('closed'),
 			shouldReconnect: () => true,
 			onReconnectStop: () => {
-				localStorage.removeItem('token')
+				// TODO use `useLocalStorage` hook
+				localStorage.setItem('token', '""')
 				toast.error('Cannot connect to chat server, please login again', { duration: 5000 })
 				navigate({ to: '/login', search: { redirect: '/home' } })
 			},
@@ -53,6 +53,10 @@ function Home() {
 	)
 
 	useEffect(() => {
+		toast.info('receiver is ' + receiver)
+	}, [receiver])
+
+	useEffect(() => {
 		if (lastJsonMessage) {
 			setMessageHistory(prev => prev.concat(lastJsonMessage))
 			console.log('lastJsonMessage', lastJsonMessage)
@@ -60,14 +64,17 @@ function Home() {
 	}, [lastJsonMessage])
 
 	async function handleSend(e: FormEvent<HTMLFormElement>) {
+		if (!receiver) return
+
 		// FIX sometimes it sends an empty message
 		try {
 			e.preventDefault()
 			console.log('message value home', messageValue)
+			console.log('receiver', receiver)
 			const msg: WSMessage = {
 				type: MessageType.NORMAL,
-				sender: user.username,
-				receiver: to,
+				senderID: user.username,
+				receiverID: receiver,
 				data: messageValue
 			}
 			sendJsonMessage<WSMessage>(msg)
@@ -92,7 +99,7 @@ function Home() {
 						</div>
 					</>
 				) : (
-					// TODO i think there is a better way to center text
+					// TODO i think there should be a better way to center text
 					<div className="w-full h-full flex items-center justify-center">
 						<div className="text-center">
 							<h1 className="text-4xl font-bold">
