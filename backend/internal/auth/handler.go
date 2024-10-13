@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"go-chat/config"
 	"go-chat/models"
 	"go-chat/storage"
 	"go-chat/utils"
@@ -38,7 +39,9 @@ func NewAuthHandler(repo *AuthRepo) AuthHandler {
 
 func (h *authHandler) Login(w http.ResponseWriter, r *http.Request) {
 	// TODO remove this sleep after testing
-	time.Sleep(time.Second * 2)
+	if config.C.AppEnv == config.DevEnv {
+		time.Sleep(time.Second * 2)
+	}
 
 	body := UserLoginDTO{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -84,7 +87,7 @@ func (h *authHandler) Login(w http.ResponseWriter, r *http.Request) {
 	result.Username = user.Username
 	result.CreatedAt = user.CreatedAt
 
-	h.createSession(r, user.Username)
+	h.createSession(r, user.ID.Hex())
 
 	utils.JsonResp(w, utils.M{"status": "success", "data": result})
 }
@@ -178,7 +181,7 @@ func (h *authHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// TODO find better way to login after registeration and do better error handling
 	// FIX sometimes the returned authorization header is: Bearer {\n "err": "username or password is incorrect"\n}
-	h.createSession(r, user.Username)
+	h.createSession(r, user.ID.Hex())
 
 	w.Header().Set("Location", fmt.Sprintf("/users/%s", id.Hex()))
 	utils.JsonResp(w, utils.M{"status": "success", "data": result}, http.StatusCreated)
@@ -195,10 +198,10 @@ func (h *authHandler) Register(w http.ResponseWriter, r *http.Request) {
 // 	return user != "" && user == u
 // }
 
-func (h *authHandler) createSession(r *http.Request, username string) {
+func (h *authHandler) createSession(r *http.Request, userID string) {
 	log := clog.WithPrefix("SESSION")
 	log.Info("before put", "stat", storage.Session.Status(r.Context()))
-	storage.Session.Put(r.Context(), "user", username)
+	storage.Session.Put(r.Context(), "user", userID)
 	fmt.Printf("create storage.Session.Keys(r.Context()): %v\n", storage.Session.Keys(r.Context()))
 	log.Info("after put", "stat", storage.Session.Status(r.Context()))
 }

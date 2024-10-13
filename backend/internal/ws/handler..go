@@ -47,9 +47,9 @@ func (h *wsHandler) OnOpen(conn *gws.Conn) {
 	if err != nil {
 		log.Warn("setdeadline", "err", err)
 	}
-	username := storage.Session.GetString(conn.Context(), "user")
-	h.clients.Store(username, conn)
-	log.Info("connection opened", "from", conn.RemoteAddr(), "username", username)
+	userID := storage.Session.GetString(conn.Context(), "user")
+	h.clients.Store(userID, conn)
+	log.Info("connection opened", "from", conn.RemoteAddr(), "userID", userID)
 }
 
 func (h *wsHandler) OnClose(conn *gws.Conn, err error) {
@@ -115,61 +115,39 @@ func (h *wsHandler) OnMessage(conn *gws.Conn, message *gws.Message) {
 
 	log.Info("message received", "from", from, "message", msg)
 
-	// TODO shitty, refactor this later
-	exits, err := h.userRepo.CheckUsername(msg.Sender, conn.Context())
-	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
-		log.Error("check username", "err", err)
-		conn.WriteString("server error")
-		return
-	}
-	if !exits {
-		log.Warn("sender not found", "username", msg.Sender)
-		conn.WriteString("user in \"from\" field is not found")
+	if !(h.validateUserID(msg.SenderID, conn, "invalid sender id", "user in \"from\" field is not found") &&
+		h.validateUserID(msg.ReceiverID, conn, "invalid receiver id", "user in \"to\" field is not found")) {
 		return
 	}
 
-	exits, err = h.userRepo.CheckUsername(msg.Receiver, conn.Context())
-	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
-		log.Error("check username", "err", err)
-		conn.WriteString("server error")
-		return
-	}
-	if !exits {
-		log.Warn("receiver not found", "username", msg.Receiver)
-		conn.WriteString("user in \"to\" field is not found")
-		return
-	}
-
-	err = h.saveMessage(msg, conn.Context())
-	if err != nil {
+	if err := h.saveMessage(msg, conn.Context()); err != nil {
 		// TODO handle invalid id error and log it
 		log.Error("save message", "err", err)
 		conn.WriteString("server error")
 		return
 	}
 
-	if to, ok := h.clients.Load(msg.Receiver); ok {
-		err = to.WriteString(message.Data.String())
-		if err != nil {
+	if to, ok := h.clients.Load(msg.ReceiverID); ok {
+		if err := to.WriteString(message.Data.String()); err != nil {
 			log.Error("write message to", "err", err)
 		}
 	} else {
-		log.Warn("user not connected", "username", msg.Receiver)
+		log.Warn("user not connected", "username", msg.ReceiverID)
 		conn.WriteString("user not connected")
 	}
 }
 
 // saveMessage checks the type of the message and saves it to the database
 func (h *wsHandler) saveMessage(msg MessageDTO, ctx context.Context) error {
-	sender, err := primitive.ObjectIDFromHex(msg.Sender)
+	sender, err := primitive.ObjectIDFromHex(msg.SenderID)
 	if err != nil {
-		log.Error("invalid sender id", "id", msg.Sender, "err", err)
+		log.Error("invalid sender id", "id", msg.SenderID, "err", err)
 		return fmt.Errorf("invalid sender id: %w", err)
 	}
 
 	switch msg.Type {
 	case enums.NormalMessage:
-		receiver, err := primitive.ObjectIDFromHex(msg.Receiver)
+		receiver, err := primitive.ObjectIDFromHex(msg.ReceiverID)
 		if err != nil {
 			return fmt.Errorf("invalid receiver id: %w", err)
 		}
@@ -182,7 +160,7 @@ func (h *wsHandler) saveMessage(msg MessageDTO, ctx context.Context) error {
 		return h.repo.SaveMessage(message, ctx)
 
 	case enums.GroupMessage:
-		group, err := primitive.ObjectIDFromHex(msg.Group)
+		group, err := primitive.ObjectIDFromHex(msg.GroupID)
 		if err != nil {
 			return fmt.Errorf("invalid group id: %w", err)
 		}
@@ -198,4 +176,39 @@ func (h *wsHandler) saveMessage(msg MessageDTO, ctx context.Context) error {
 		log.Warn("unknown message type", "type", msg.Type)
 		return errors.New("unknown message type")
 	}
+}
+
+// validateUserID checks if the user ID is valid and exists.
+// errMessages[0] is the error message for invalid user id and
+// errMessages[1] is the error message for user not found
+func (h *wsHandler) validateUserID(userIDHex string, conn *gws.Conn, errMessages ...string) bool {
+	idErr := "invalid user id"
+	if len(errMessages) > 0 {
+		idErr = errMessages[0]
+	}
+	notFoundErr := "user not found"
+	if len(errMessages) > 1 {
+		notFoundErr = errMessages[1]
+	}
+
+	userID, err := primitive.ObjectIDFromHex(userIDHex)
+	if err != nil {
+		log.Error(idErr, "id", userIDHex, "err", err)
+		conn.WriteString(idErr)
+		return false
+	}
+
+	exists, err := h.userRepo.CheckUserID(userID, conn.Context())
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		log.Error("check user id", "err", err)
+		conn.WriteString("server error")
+		return false
+	}
+	if !exists {
+		log.Warn(notFoundErr, "userID", userID.String())
+		conn.WriteString(notFoundErr)
+		return false
+	}
+
+	return true
 }

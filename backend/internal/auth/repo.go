@@ -29,7 +29,12 @@ func (r *AuthRepo) GetUserByUsername(username string, ctx context.Context) (mode
 	return user, err
 }
 
-// CheckUsername checks if the username is exist
+// CheckUserID checks if the user ID exists
+func (r *AuthRepo) CheckUserID(id primitive.ObjectID, ctx context.Context) (bool, error) {
+	count, err := r.users.CountDocuments(ctx, bson.M{"_id": id})
+	return count > 0, err
+}
+
 func (r *AuthRepo) CheckUsername(username string, ctx context.Context) (bool, error) {
 	count, err := r.users.CountDocuments(ctx, bson.M{"username": username})
 	return count > 0, err
