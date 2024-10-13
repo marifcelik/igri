@@ -7,7 +7,7 @@ import type { ChatPerson } from '@/types'
 export default function Sidebar() {
 	const persons: ChatPerson[] = [
 		{
-			id: crypto.randomUUID(),
+			id: '670bb854e1081c236d035399',
 			name: 'Tıpıt Çelik',
 			username: 'tıpıt',
 			message: "hey what's going on?",
@@ -15,7 +15,7 @@ export default function Sidebar() {
 			image: '/placeholder-user.jpg'
 		},
 		{
-			id: crypto.randomUUID(),
+			id: '6708430385d7e24fdea7583d',
 			name: 'Maho adam',
 			username: 'marifcelik',
 			message: 'Just finished a great book! 📚',

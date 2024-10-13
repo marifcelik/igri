@@ -27,7 +27,7 @@ export default function PersonInfo() {
 					<VideoIcon className="h-4 w-4" />
 				</Button>
 				<Button variant="ghost" asChild>
-					<Link to="/login">Login</Link>
+					<Link to="/auth/login">Login</Link>
 				</Button>
 				<ThemeButton />
 			</div>

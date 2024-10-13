@@ -15,9 +15,9 @@ export const Route = createFileRoute('/home')({
 	beforeLoad: () => {
 		const token = localStorage.getItem('token')
 		console.log(token)
-		if (!token || token === 'null' || token === 'undefined' || token === '""')
+		if (!token || ['null', '"null"', 'undefined', '"undefined"', '""'].includes(token))
 			throw redirect({
-				to: '/login',
+				to: '/auth/login',
 				search: { redirect: '/home' }
 			})
 	},
@@ -45,7 +45,7 @@ function Home() {
 				// TODO use `useLocalStorage` hook
 				localStorage.setItem('token', '""')
 				toast.error('Cannot connect to chat server, please login again', { duration: 5000 })
-				navigate({ to: '/login', search: { redirect: '/home' } })
+				navigate({ to: '/auth/login', search: { redirect: '/home' } })
 			},
 			reconnectAttempts: 3,
 			reconnectInterval: 2000
@@ -73,7 +73,7 @@ function Home() {
 			console.log('receiver', receiver)
 			const msg: WSMessage = {
 				type: MessageType.NORMAL,
-				senderID: user.username,
+				senderID: user.id,
 				receiverID: receiver,
 				data: messageValue
 			}

@@ -5,7 +5,7 @@ function Footer() {
 	const links: { name: string; to: LinkProps['to'] }[] = [
 		{ name: 'Home', to: '/' },
 		{ name: 'About', to: '/about' },
-		{ name: 'Prev', to: '../' }
+		{ name: 'Prev', to: '..' }
 	]
 
 	return (

@@ -6,7 +6,7 @@ export const Route = createFileRoute('/admin')({
 		const token = localStorage.getItem('admin-token')
 		if (!token)
 			throw redirect({
-				to: '/login',
+				to: '/auth/login',
 				search: { redirect: location.href }
 			})
 	},

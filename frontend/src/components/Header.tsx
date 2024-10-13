@@ -6,7 +6,7 @@ import { Sheet, SheetTrigger, SheetContent } from './ui/sheet'
 import ThemeButton from './ThemeButton'
 
 function Header() {
-	const links: { name: string; to: LinkProps['to'] }[] = [{ name: 'Login', to: '/login' }]
+	const links: { name: string; to: LinkProps['to'] }[] = [{ name: 'Login', to: '/auth/login' }]
 
 	const [open, setOpen] = useState(false)
 
