@@ -10,7 +10,7 @@ export type WSMessage = {
 	senderID: string
 	receiverID?: string
 	data: string
-	group?: string
+	groupID?: string
 }
 
 export type UserFields = {
