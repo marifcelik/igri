@@ -4,8 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { ArrowLeftIcon, Loader2Icon } from 'lucide-react'
-import ThemeButton from '@/components/ThemeButton'
+import { Loader2Icon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -27,7 +26,7 @@ const LoginFormSchema = z.object({
 	password: z.string().min(6, 'Password must be at least 6 characters')
 })
 
-export const Route = createLazyFileRoute('/login')({
+export const Route = createLazyFileRoute('/auth/login')({
 	component: Login
 })
 
@@ -102,72 +101,67 @@ function Login() {
 	}
 
 	return (
-		<>
-			<div className="absolute top-10 right-10 md:right-32">
-				<ThemeButton />
-			</div>
-			<div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 ">
-				<Link
-					to="/"
-					className="inline-flex items-center justify-center w-full gap-2 mb-10 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-500"
-				>
-					<ArrowLeftIcon className="h-5 w-5" />
-					Return to homepage
-				</Link>
-				<Card className="w-80 scale-110">
-					<CardHeader className="space-y-1">
-						<CardTitle className="text-2xl">Login</CardTitle>
-					</CardHeader>
-					<CardContent className="grid gap-4">
-						<Form {...form}>
-							<form onSubmit={form.handleSubmit(handleLogin)} className="grid gap-4 my-auto">
-								<div className="grid gap-4">
-									<div className="space-y-2">
-										<FormField
-											control={form.control}
-											name="username"
-											render={({ field }) => (
-												<FormItem>
-													<FormLabel htmlFor="username">Username</FormLabel>
-													<FormControl>
-														<Input {...field} id="username" placeholder="Enter your username" disabled={loading} />
-													</FormControl>
-													<FormMessage />
-												</FormItem>
-											)}
-										/>
-									</div>
-									<div className="space-y-2">
-										<FormField
-											control={form.control}
-											name="password"
-											render={({ field }) => (
-												<FormItem>
-													<FormLabel htmlFor="password">Password</FormLabel>
-													<FormControl>
-														<Input
-															{...field}
-															id="password"
-															placeholder="Enter your password"
-															type="password"
-															disabled={loading}
-														/>
-													</FormControl>
-													<FormMessage />
-												</FormItem>
-											)}
-										/>
-									</div>
-								</div>
-								<Button type="submit" className="mt-3" disabled={loading}>
-									{loading && <Loader2Icon className="mr-2 size-4 animate-spin" />}
-									Login
-								</Button>
-							</form>
-						</Form>
-					</CardContent>
-				</Card>
-			</div>
-		</>
+		<Card className="w-80 scale-110">
+			<CardHeader className="space-y-1">
+				<CardTitle className="text-2xl">Login</CardTitle>
+			</CardHeader>
+			<CardContent className="grid gap-4">
+				<Form {...form}>
+					<form onSubmit={form.handleSubmit(handleLogin)} className="grid gap-4 my-auto">
+						<div className="grid gap-4">
+							<div className="space-y-2">
+								<FormField
+									control={form.control}
+									name="username"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel htmlFor="username">Username</FormLabel>
+											<FormControl>
+												<Input {...field} id="username" placeholder="Enter your username" disabled={loading} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+							<div className="space-y-2">
+								<FormField
+									control={form.control}
+									name="password"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel htmlFor="password">Password</FormLabel>
+											<FormControl>
+												<Input
+													{...field}
+													id="password"
+													placeholder="Enter your password"
+													type="password"
+													disabled={loading}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+						</div>
+						<Button type="submit" className="mt-3" disabled={loading}>
+							{loading && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+							Login
+						</Button>
+					</form>
+				</Form>
+				<div className="text-sm mx-auto mt-3">
+					Don't have an account?
+					<Link
+						to="/auth/register"
+						className="ml-2 text-center text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-500"
+					>
+						Register
+					</Link>
+				</div>
+			</CardContent>
+		</Card>
 	)
 }
