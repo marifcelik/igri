@@ -12,8 +12,15 @@ import (
 // C is the global config variable
 var C config
 
+type Env string
+
+const (
+	DevEnv  Env = "dev"
+	ProdEnv Env = "prod"
+)
+
 type config struct {
-	AppEnv     string `envDefault:"dev"`
+	AppEnv     Env    `envDefault:"dev"`
 	MongoURI   string `env:"MONGO_URI,expand" envDefault:"mongodb://localhost:27017"`
 	MongoName  string `envDefault:"go_chat"`
 	RedisURL   string `env:"REDIS_URL,expand"`
