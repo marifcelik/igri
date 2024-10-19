@@ -2,7 +2,7 @@ package enums
 
 import "github.com/charmbracelet/log"
 
-type MessageType int
+type ConversationType int
 
 // TODO support these message types
 // const (
@@ -18,11 +18,11 @@ type MessageType int
 // )
 
 const (
-	NormalMessage MessageType = iota
-	GroupMessage
+	NormalConversation ConversationType = iota
+	GroupConversation
 )
 
-func (m MessageType) String() string {
+func (m ConversationType) String() string {
 	var words = [...]string{"Normal", "Group"}
 
 	if m < 0 || int(m) > len(words) {
