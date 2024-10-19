@@ -5,6 +5,7 @@ tasks:
     summary: If you are using app first time, you need to create a network for the app
     cmds:
       - docker network create {{.NETWORK_NAME}}
+      - sleep 1
     status:
       - docker network ls --format "{{.Name}}" | grep -q {{.NETWORK_NAME}}
 
@@ -52,10 +53,11 @@ tasks:
   run:
     desc: Start app
     deps:
+      - create_network
       - start_db
       - start_redis
     cmds:
-      - sleep 3 # wait for db and redis to start
+      - sleep 2 # wait for db and redis to start
       - "{{.RUN_CMD}}"
       - defer: { task: stop_db }
       - defer: { task: stop_redis }
@@ -65,6 +67,7 @@ tasks:
   default:
     desc: Start app in watch mode
     deps:
+      - create_network
       - start_db
       - start_redis
     cmds:
