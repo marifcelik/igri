@@ -4,29 +4,27 @@ import (
 	"context"
 	"go-chat/models"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type wsRepo struct {
-	userMessages, groupMessages *mongo.Collection
+	messages, conversations *mongo.Collection
 }
 
 func NewWSRepo(db *mongo.Database) *wsRepo {
 	return &wsRepo{
-		userMessages:  db.Collection("messages"),
-		groupMessages: db.Collection("group_messages"),
+		messages:      db.Collection("messages"),
+		conversations: db.Collection("conversations"),
 	}
 }
 
-/* TODO research the use of generic methods to write/read user and group messages
-without seperate methods */
-
-func (r *wsRepo) SaveMessage(message models.UserMessage, ctx context.Context) error {
-	_, err := r.userMessages.InsertOne(ctx, message)
-	return err
+func (r *wsRepo) SaveConversation(conversation models.Conversation, ctx context.Context) (primitive.ObjectID, error) {
+	result, err := r.conversations.InsertOne(ctx, conversation)
+	return result.InsertedID.(primitive.ObjectID), err
 }
 
-func (r *wsRepo) SaveGroupMessage(message models.GroupMessage, ctx context.Context) error {
-	_, err := r.groupMessages.InsertOne(ctx, message)
+func (r *wsRepo) SaveMessage(message models.Message, ctx context.Context) error {
+	_, err := r.messages.InsertOne(ctx, message)
 	return err
 }

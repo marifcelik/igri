@@ -38,7 +38,6 @@ func NewAuthHandler(repo *AuthRepo) AuthHandler {
 }
 
 func (h *authHandler) Login(w http.ResponseWriter, r *http.Request) {
-	// TODO remove this sleep after testing
 	if config.C.AppEnv == config.DevEnv {
 		time.Sleep(time.Second * 2)
 	}

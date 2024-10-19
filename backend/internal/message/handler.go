@@ -1,8 +1,9 @@
 package message
 
 import (
-	"go-chat/utils"
 	"net/http"
+
+	"go-chat/utils"
 
 	clog "github.com/charmbracelet/log"
 )

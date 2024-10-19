@@ -13,7 +13,7 @@ type UserRegisterDTO struct {
 	Name            string `json:"name"`
 	Username        string `json:"username"`
 	Password        string `json:"password"`
-	PasswordConfirm string `json:"password_confirm"`
+	PasswordConfirm string `json:"passwordConfirm"`
 }
 
 type UserReturnDTO struct {

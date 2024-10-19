@@ -100,7 +100,7 @@ func (h *wsHandler) OnMessage(conn *gws.Conn, message *gws.Message) {
 		return
 	}
 
-	msg := MessageDTO{}
+	msg := ConversationMessageDTO{}
 
 	if err := json.Unmarshal(message.Bytes(), &msg); err != nil {
 		log.Warn("unmarshal message", "err", err)
@@ -115,67 +115,82 @@ func (h *wsHandler) OnMessage(conn *gws.Conn, message *gws.Message) {
 
 	log.Info("message received", "from", from, "message", msg)
 
-	if !(h.validateUserID(msg.SenderID, conn, "invalid sender id", "user in \"from\" field is not found") &&
-		h.validateUserID(msg.ReceiverID, conn, "invalid receiver id", "user in \"to\" field is not found")) {
+	if !h.validateUserID(msg.SenderID, conn, "invalid sender id", "user in \"senderID\" field is not found") ||
+		!h.validateUserID(msg.ConversationID, conn, "invalid receiver id", "user in \"receiverID\" field is not found") {
 		return
 	}
 
+	// TODO use WSMessage DTO
 	if err := h.saveMessage(msg, conn.Context()); err != nil {
-		// TODO handle invalid id error and log it
 		log.Error("save message", "err", err)
 		conn.WriteString("server error")
 		return
 	}
 
-	if to, ok := h.clients.Load(msg.ReceiverID); ok {
+	if to, ok := h.clients.Load(msg.ConversationID); ok {
 		if err := to.WriteString(message.Data.String()); err != nil {
 			log.Error("write message to", "err", err)
 		}
 	} else {
-		log.Warn("user not connected", "username", msg.ReceiverID)
+		log.Warn("user not connected", "username", msg.ConversationID)
 		conn.WriteString("user not connected")
 	}
 }
 
 // saveMessage checks the type of the message and saves it to the database
-func (h *wsHandler) saveMessage(msg MessageDTO, ctx context.Context) error {
-	sender, err := primitive.ObjectIDFromHex(msg.SenderID)
+func (h *wsHandler) saveMessage(msg ConversationMessageDTO, ctx context.Context) error {
+	senderID, err := primitive.ObjectIDFromHex(msg.SenderID)
 	if err != nil {
 		log.Error("invalid sender id", "id", msg.SenderID, "err", err)
 		return fmt.Errorf("invalid sender id: %w", err)
 	}
 
-	switch msg.Type {
-	case enums.NormalMessage:
-		receiver, err := primitive.ObjectIDFromHex(msg.ReceiverID)
-		if err != nil {
-			return fmt.Errorf("invalid receiver id: %w", err)
+	if msg.Type == enums.NormalConversation || msg.Type == enums.GroupConversation {
+		var conversationID primitive.ObjectID
+
+		if msg.ConversationID == "" {
+			if msg.Type == enums.GroupConversation {
+				return errors.New("group conversation id is required")
+			}
+
+			conversation := models.Conversation{
+				Type:         enums.NormalConversation,
+				Participants: []primitive.ObjectID{senderID},
+				M: models.M{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+					Version:   1,
+				},
+			}
+
+			id, err := h.repo.SaveConversation(conversation, ctx)
+			if err != nil {
+				return fmt.Errorf("save conversation: %w", err)
+			}
+			conversationID = id
+		} else {
+			id, err := primitive.ObjectIDFromHex(msg.ConversationID)
+			if err != nil {
+				return fmt.Errorf("invalid conversation id: %w", err)
+			}
+			conversationID = id
 		}
 
-		message := models.UserMessage{
-			SenderID:   sender,
-			ReceiverID: receiver,
-			Message:    msg.Data,
+		message := models.Message{
+			SenderID:       senderID,
+			ConversationID: conversationID,
+			Content:        msg.Content,
+			M: models.M{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+				Version:   1,
+			},
 		}
 		return h.repo.SaveMessage(message, ctx)
-
-	case enums.GroupMessage:
-		group, err := primitive.ObjectIDFromHex(msg.GroupID)
-		if err != nil {
-			return fmt.Errorf("invalid group id: %w", err)
-		}
-
-		message := models.GroupMessage{
-			SenderID: sender,
-			GroupID:  group,
-			Message:  msg.Data,
-		}
-		return h.repo.SaveGroupMessage(message, ctx)
-
-	default:
-		log.Warn("unknown message type", "type", msg.Type)
-		return errors.New("unknown message type")
 	}
+
+	log.Warn("unknown message type", "type", msg.Type)
+	return errors.New("unknown message type")
 }
 
 // validateUserID checks if the user ID is valid and exists.

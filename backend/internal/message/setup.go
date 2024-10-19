@@ -15,7 +15,7 @@ func Setup(c *chi.Mux, db *mongo.Database) {
 		r.Use(middlewares.Auth)
 
 		// TODO implement get message queries like sender=x, receiver=x
-		r.Get("/{receiverId}", handler.GetUserMessages)
+		r.Get("/{userID}", handler.GetUserMessages)
 		r.Get("/groups/{id}", handler.GetGroupMessages)
 	})
 }

@@ -2,9 +2,9 @@ package message
 
 import (
 	"context"
-	"errors"
-	"go-chat/models"
 	"time"
+
+	"go-chat/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -12,57 +12,58 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type UserMessageQuery struct {
-	ReceiverId primitive.ObjectID
+type MessageQuery struct {
+	UserID     primitive.ObjectID
 	Start, End time.Time
+	Limit      int64 // options.Find().SetLimit requires int64
 }
 
 type messageRepo struct {
-	userMessages, groupMessages *mongo.Collection
+	messages, userConversations *mongo.Collection
 }
 
 func NewMessageRepo(db *mongo.Database) *messageRepo {
 	return &messageRepo{
-		userMessages:  db.Collection("messages"),
-		groupMessages: db.Collection("group_messages"),
+		messages:          db.Collection("messages"),
+		userConversations: db.Collection("userConversations"),
 	}
 }
 
-// GetUserMessages returns 25 messages for a user based on the query options
-func (r *messageRepo) GetUserMessages(ctx context.Context, queryOptions UserMessageQuery) ([]models.UserMessage, error) {
-	// TODO add additional query options like limit, offset, etc
+func (r *messageRepo) GetMessageByID(ctx context.Context, id primitive.ObjectID) (models.Message, error) {
+	var message models.Message
+	err := r.userConversations.FindOne(ctx, bson.M{"_id": id}).Decode(&message)
+	return message, err
+}
 
-	var cursor *mongo.Cursor
-	var err error
-
-	if _, err = primitive.ObjectIDFromHex(queryOptions.ReceiverId.Hex()); err != nil {
-		return nil, err
+func (r *messageRepo) GetUserConversations(ctx context.Context, query MessageQuery) ([]models.UserConversation, error) {
+	options := options.Find()
+	options.SetLimit(10)
+	if query.Limit >= 0 {
+		options.SetLimit(query.Limit)
 	}
-	if queryOptions.ReceiverId.IsZero() {
-		return nil, errors.New("receiver_id is required")
-	}
+	options.SetSort(bson.M{"updatedAt": -1})
 
-	query := bson.D{{Key: "receiver_id", Value: queryOptions.ReceiverId}}
-	if !(queryOptions.Start.IsZero() || queryOptions.End.IsZero()) {
-		query = append(query, bson.D{
-			{Key: "created_at", Value: bson.D{
-				{Key: "$gte", Value: queryOptions.Start},
-				{Key: "$lte", Value: queryOptions.End},
-			}},
-		}...)
-	}
-
-	findOptions := options.Find()
-	findOptions.SetLimit(25)
-	cursor, err = r.userMessages.Find(ctx, query, findOptions)
-
+	cursor, err := r.userConversations.Find(ctx, bson.M{"userID": query.UserID}, options)
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
 
-	var messages []models.UserMessage
-	if err = cursor.All(ctx, &messages); err != nil {
+	var messages []models.UserConversation
+	if err := cursor.All(ctx, &messages); err != nil {
+		return nil, err
+	}
+
+	return messages, nil
+}
+
+func (r *messageRepo) GetUserMessages(ctx context.Context, query MessageQuery) ([]models.UserConversation, error) {
+	cursor, err := r.userConversations.Find(ctx, bson.M{"userID": query.UserID})
+	if err != nil {
+		return nil, err
+	}
+
+	var messages []models.UserConversation
+	if err := cursor.All(ctx, &messages); err != nil {
 		return nil, err
 	}
 
