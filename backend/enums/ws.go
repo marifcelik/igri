@@ -1,37 +1,17 @@
 package enums
 
-type MessageResultStatus int
+//go:generate enumer -type=ResultStatus -trimprefix=Result
+type ResultStatus int
 
 const (
-	MessageResultSuccess MessageResultStatus = iota
-	MessageResultFailed
+	ResultSuccess ResultStatus = iota
+	ResultFailed
 )
 
-func (e MessageResultStatus) String() string {
-	switch e {
-	case MessageResultSuccess:
-		return "Success"
-	case MessageResultFailed:
-		return "Failed"
-	default:
-		return "Unknown"
-	}
-}
-
+//go:generate enumer -type=WSMessageType -trimprefix=WSMessage
 type WSMessageType int
 
 const (
 	WSMessageConversation WSMessageType = iota
 	WSMessageResult
 )
-
-func (e WSMessageType) String() string {
-	switch e {
-	case WSMessageConversation:
-		return "Conversation"
-	case WSMessageResult:
-		return "Result"
-	default:
-		return "Unknown"
-	}
-}

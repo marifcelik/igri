@@ -1,7 +1,6 @@
 package enums
 
-import "github.com/charmbracelet/log"
-
+//go:generate enumer -type=ConversationType -trimsuffix=Conversation
 type ConversationType int
 
 // TODO support these message types
@@ -11,26 +10,9 @@ type ConversationType int
 // 	MessageType_Video
 // 	MessageType_Audio
 // 	MessageType_File
-// 	MessageType_Location
-// 	MessageType_Contact
-// 	MessageType_Sticker
-// 	MessageType_Gif
 // )
 
 const (
 	NormalConversation ConversationType = iota
 	GroupConversation
 )
-
-func (m ConversationType) String() string {
-	var words = [...]string{"Normal", "Group"}
-
-	if m < 0 || int(m) > len(words) {
-		// if i use m directly, it will cause infinite loop because of String() method call itself recursively
-		// so convert it to its underlying type
-		// if i use log directly, it will cause the same problem too, idk why
-		log.WithPrefix("WS").Warn("Invalid message type", "sended message type", int(m))
-		return "Invalid"
-	}
-	return words[m]
-}
