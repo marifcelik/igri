@@ -2,7 +2,7 @@ version: 3
 tasks:
   create_network:
     desc: Create a docker network for the app
-    summary: If you are using app first time, you need to create a network for the app
+    summary: If you are using app first time, you need to create a network for the app, if it fails on first run, it's okay, it will be created anyway.
     cmds:
       - docker network create {{.NETWORK_NAME}}
       - sleep 1
