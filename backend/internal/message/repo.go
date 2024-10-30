@@ -57,11 +57,12 @@ func (r *messageRepo) GetUserConversations(ctx context.Context, userID primitive
 
 		if conversation.Type == enums.NormalConversation {
 			otherParticipantID := getOtherParticipantID(conversation.Participants, userID)
-			otherParticipantName, err := r.getParticipantNameByID(ctx, otherParticipantID)
+			otherParticipantName, otherParticipantUsername, err := r.getParticipantInfoByID(ctx, otherParticipantID)
 			if err != nil {
 				return nil, err
 			}
 			conversation.Name = otherParticipantName
+			conversation.Username = otherParticipantUsername
 		}
 
 		conversations = append(conversations, conversation)
@@ -101,13 +102,13 @@ func (r *messageRepo) GetConversationMessages(ctx context.Context, conversationI
 	return messages, nil
 }
 
-func (r *messageRepo) getParticipantNameByID(ctx context.Context, userID primitive.ObjectID) (string, error) {
+func (r *messageRepo) getParticipantInfoByID(ctx context.Context, userID primitive.ObjectID) (name, username string, err error) {
 	var user models.User
-	err := r.users.FindOne(ctx, bson.M{"_id": userID}).Decode(&user)
+	err = r.users.FindOne(ctx, bson.M{"_id": userID}).Decode(&user)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return user.Name, nil
+	return user.Name, user.Username, nil
 }
 
 func getOtherParticipantID(participants []primitive.ObjectID, userID primitive.ObjectID) primitive.ObjectID {

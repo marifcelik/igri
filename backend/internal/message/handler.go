@@ -133,6 +133,7 @@ func (h *messageHandler) createConversationDTO(c []models.Conversation) []Conver
 			Participants: participants,
 			LastMessage:  lastMsg,
 			Name:         c.Name,
+			Username:     c.Username,
 		})
 	}
 

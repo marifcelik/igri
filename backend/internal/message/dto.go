@@ -11,6 +11,7 @@ type MessageDTO struct {
 type ConversationDTO struct {
 	ID           string     `json:"id"`
 	Name         string     `json:"name,omitempty"`
+	Username     string     `json:"username,omitempty"`
 	Participants []string   `json:"participants"`
 	LastMessage  MessageDTO `json:"lastMessage"`
 }

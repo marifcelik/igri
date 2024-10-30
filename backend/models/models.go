@@ -33,8 +33,10 @@ type User struct {
 }
 
 type Conversation struct {
-	M            `bson:",inline"`
-	Name         string                 `json:"name,omitempty" bson:"name,omitempty"`
+	M    `bson:",inline"`
+	Name string `json:"name,omitempty" bson:"name,omitempty"`
+	// TODO remove later
+	Username     string                 `json:"username,omitempty" bson:"-"`
 	Type         enums.ConversationType `json:"type,omitempty" bson:"type,omitempty"`
 	Participants []primitive.ObjectID   `json:"participants,omitempty" bson:"participants,omitempty"`
 	LastMessage  *Message               `json:"lastMessage,omitempty" bson:"last_message,omitempty"`
