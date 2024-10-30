@@ -23,13 +23,11 @@ func Setup(c *chi.Mux, db *mongo.Database) {
 		PermessageDeflate: gws.PermessageDeflate{Enabled: true},
 	})
 
-	c.Route("/_ws", func(r chi.Router) {
-		r.Use(
-			middlewares.UpgradeChecher,
-			middlewares.WsHeader,
-			middlewares.Auth,
-		)
-
+	c.With(
+		middlewares.UpgradeChecher,
+		middlewares.WsHeader,
+		middlewares.Auth,
+	).Route("/_ws", func(r chi.Router) {
 		r.Get("/", func(w http.ResponseWriter, req *http.Request) {
 			conn, err := upgrader.Upgrade(w, req)
 			if err != nil {

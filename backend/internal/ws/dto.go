@@ -7,15 +7,17 @@ type WSMessage struct {
 	Data any                 `json:"data"`
 }
 
-type ConversationMessageDTO struct {
-	Type           enums.ConversationType `json:"type"`
-	SenderID       string                 `json:"senderID"`
-	ConversationID string                 `json:"conversationID,omitempty"`
-	Content        string                 `json:"content"`
+type MessageDTO struct {
+	Type              enums.ConversationType `json:"type"`
+	SenderID          string                 `json:"senderID"`
+	RecipientUsername string                 `json:"recipientUsername,omitempty"`
+	ConversationID    string                 `json:"conversationID,omitempty"`
+	Content           string                 `json:"content"`
+	CreatedAt         string                 `json:"createdAt"`
 }
 
-type MessageResultDTO struct {
-	Status         enums.MessageResultStatus `json:"status"`
-	ConversationID string                    `json:"conversationID"`
-	MessageID      string                    `json:"messageID"`
+type ResultDTO struct {
+	Status         enums.ResultStatus `json:"status"`
+	ConversationID string             `json:"conversationID"`
+	MessageID      string             `json:"messageID"`
 }
