@@ -11,11 +11,9 @@ func Setup(c *chi.Mux, db *mongo.Database) {
 	repo := NewMessageRepo(db)
 	handler := NewMessageHandler(repo)
 
-	c.Route("/messages", func(r chi.Router) {
-		r.Use(middlewares.Auth)
-
+	c.With(middlewares.Auth).Route("/messages", func(r chi.Router) {
+		r.Get("/{conversationID}", handler.GetConversationMessages)
 		// TODO implement get message queries like sender=x, receiver=x
-		r.Get("/{userID}", handler.GetUserMessages)
-		r.Get("/groups/{id}", handler.GetGroupMessages)
+		r.Get("/conversations/{userID}", handler.GetUserConversations)
 	})
 }
