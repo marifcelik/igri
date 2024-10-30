@@ -9,7 +9,7 @@ import (
 
 	"go-chat/config"
 	"go-chat/models"
-	"go-chat/storage"
+	st "go-chat/storage"
 	"go-chat/utils"
 
 	clog "github.com/charmbracelet/log"
@@ -92,12 +92,12 @@ func (h *authHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *authHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	if !storage.Session.Exists(r.Context(), "user") {
+	if !st.Session.Exists(r.Context(), config.C.SessionIDKey) {
 		utils.ErrResp(w, http.StatusNotAcceptable)
 		return
 	}
 
-	err := storage.Session.Destroy(r.Context())
+	err := st.Session.Destroy(r.Context())
 	if err != nil {
 		utils.ErrResp(w, http.StatusNotAcceptable, err)
 		return
@@ -188,19 +188,19 @@ func (h *authHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 // TODO implement the isLoggedIn and checkLoggedIn
 // func (h *authHandler) isLoggedIn(r *http.Request, u string) bool {
-// 	user := storage.Session.GetString(r.Context(), "user")
+// 	user := st.Session.GetString(r.Context(), config.C.UserSessionKey)
 // 	return user != ""
 // }
 
 // func (h *authHandler) checkLoggedIn(r *http.Request, u string) bool {
-// 	user := storage.Session.GetString(r.Context(), "user")
+// 	user := st.Session.GetString(r.Context(), config.C.UserSessionKey)
 // 	return user != "" && user == u
 // }
 
 func (h *authHandler) createSession(r *http.Request, userID string) {
 	log := clog.WithPrefix("SESSION")
-	log.Info("before put", "stat", storage.Session.Status(r.Context()))
-	storage.Session.Put(r.Context(), "user", userID)
-	fmt.Printf("create storage.Session.Keys(r.Context()): %v\n", storage.Session.Keys(r.Context()))
-	log.Info("after put", "stat", storage.Session.Status(r.Context()))
+	log.Info("before put", "stat", st.Session.Status(r.Context()))
+	st.Session.Put(r.Context(), config.C.SessionIDKey, userID)
+	fmt.Printf("create st.Session.Keys(r.Context()): %v\n", st.Session.Keys(r.Context()))
+	log.Info("after put", "stat", st.Session.Status(r.Context()))
 }

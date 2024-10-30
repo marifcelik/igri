@@ -3,12 +3,13 @@ package auth
 import (
 	"context"
 	"errors"
+
+	"go-chat/config"
 	"go-chat/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type AuthRepo struct {
@@ -16,7 +17,7 @@ type AuthRepo struct {
 }
 
 func NewAuthRepo(db *mongo.Database) *AuthRepo {
-	return &AuthRepo{users: db.Collection("users")}
+	return &AuthRepo{users: db.Collection(config.C.DBKey.Users)}
 }
 
 func (r *AuthRepo) GetUserByUsername(username string, ctx context.Context) (models.User, error) {
@@ -41,7 +42,7 @@ func (r *AuthRepo) CheckUsername(username string, ctx context.Context) (bool, er
 }
 
 func (r *AuthRepo) CreateUser(user *models.User, ctx context.Context) (primitive.ObjectID, error) {
-	result, err := r.users.InsertOne(ctx, user, &options.InsertOneOptions{})
+	result, err := r.users.InsertOne(ctx, user)
 	if err != nil {
 		return primitive.NilObjectID, err
 	}
