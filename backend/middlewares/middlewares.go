@@ -4,7 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"go-chat/storage"
+	"go-chat/config"
+	st "go-chat/storage"
 	"go-chat/utils"
 
 	"github.com/charmbracelet/log"
@@ -13,14 +14,17 @@ import (
 
 func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user := storage.Session.GetString(r.Context(), "user")
+		userID := st.Session.GetString(r.Context(), config.C.SessionIDKey)
 
-		if user == "" {
-			log.WithPrefix("AUTH MW").Warn("unauthorized request", "header", r.Header)
+		log.Print("auth middleware", "userID", userID)
+		sr := r.WithContext(context.WithValue(r.Context(), "userID", userID))
+
+		if userID == "" {
+			log.WithPrefix("AUTH MW").Warn("unauthorized request", "header", r.Header.Get(config.C.HeaderKey.Session))
 			utils.ErrResp(w, http.StatusUnauthorized)
 			return
 		}
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, sr)
 	})
 }
 
@@ -28,10 +32,10 @@ func Auth(next http.Handler) http.Handler {
 // TODO find a way to parse the body once or look for what other people do
 func LoggedIn(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user := storage.Session.GetString(r.Context(), "user")
-		log.Debug("user: %v\n", user)
+		user := st.Session.GetString(r.Context(), config.C.SessionIDKey)
+		log.Info("userID: %v\n", user)
 		if user != "" {
-			storage.Session.Put(r.Context(), "warn", storage.Session.GetInt(r.Context(), "warn")+1)
+			st.Session.Put(r.Context(), "warn", st.Session.GetInt(r.Context(), "warn")+1)
 			utils.JsonResp(w, utils.M{"warn": "you already logged in"}, http.StatusConflict)
 			return
 		}
@@ -42,31 +46,23 @@ func LoggedIn(next http.Handler) http.Handler {
 
 func WsHeader(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// XXX i am not sure if using the goto statement is a good idea, look for it later
-		var (
-			token string
-			err   error
-			ctx   context.Context
-			nc    context.Context
-			sr    *http.Request
-		)
-
-		token = r.URL.Query().Get("token")
+		token := r.URL.Query().Get("token")
 		if token == "" {
-			goto unauthorized
+			utils.ErrResp(w, http.StatusUnauthorized)
+			return
 		}
-		r.Header.Add("X-Session", token)
-		ctx = context.WithValue(context.Background(), chi.RouteCtxKey, r.Context().Value(chi.RouteCtxKey))
-		nc, err = storage.Session.Load(ctx, token)
+
+		r.Header.Add(config.C.HeaderKey.Session, token)
+
+		ctx := context.WithValue(context.Background(), chi.RouteCtxKey, r.Context().Value(chi.RouteCtxKey))
+		nc, err := st.Session.Load(ctx, token)
 		if err != nil {
 			log.Error("session load", "err", err)
-			goto unauthorized
+			utils.ErrResp(w, http.StatusUnauthorized)
+			return
 		}
-		sr = r.WithContext(nc)
-		next.ServeHTTP(w, sr)
 
-	unauthorized:
-		utils.ErrResp(w, http.StatusUnauthorized)
+		next.ServeHTTP(w, r.WithContext(nc))
 	})
 }
 
