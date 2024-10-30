@@ -1,19 +1,21 @@
 import { useState } from 'react'
-import { useLocalStorage } from '@uidotdev/usehooks'
 import { createRootRoute, Outlet, ScrollRestoration } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
+import { useLocalStorage } from 'react-use'
 import SonnerContainer from '@/components/SonnerContainer'
 import { ChatContext } from '@/context/chatContext'
 import { UserContext } from '@/context/userContext'
-import type { UserFields, WSMessage } from '@/types'
+import type { ConversationPreview, UserFields, WSMessage } from '@/types'
 
 export const Route = createRootRoute({
 	component: () => {
-		const [id, setId] = useLocalStorage<string>('id')
-		const [username, setUsername] = useLocalStorage<string>('username')
-		const [token, setToken] = useLocalStorage<string>('token')
+		const [id, setId] = useLocalStorage<string>('id', '')
+		const [username, setUsername] = useLocalStorage<string>('username', '')
+		const [token, setToken] = useLocalStorage<string>('token', '')
 
-		const [receiver, setReceiver] = useState<string | null>(null)
+		const [recipientID, setRecipientID] = useState<string | null>(null)
+		const [conversation, setConversation] = useState<ConversationPreview | null>(null)
+		// @ts-expect-error
 		const [user, setUser] = useState<UserFields>({ id, username, token })
 		const [messageHistory, setMessageHistory] = useState<WSMessage[]>([])
 
@@ -26,7 +28,16 @@ export const Route = createRootRoute({
 
 		return (
 			<>
-				<ChatContext.Provider value={{ messageHistory, setMessageHistory, receiver, setReceiver }}>
+				<ChatContext.Provider
+					value={{
+						messageHistory,
+						setMessageHistory,
+						recipientID,
+						setRecipientID,
+						conversation,
+						setConversation
+					}}
+				>
 					<UserContext.Provider value={{ user, setUser: handleSetUser }}>
 						<Outlet />
 					</UserContext.Provider>

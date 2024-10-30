@@ -1,29 +1,32 @@
 import { useContext } from 'react'
+import { formatDistanceToNow } from 'date-fns'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { ChatContext } from '@/context/chatContext'
-import type { ChatPerson } from '@/types'
+import type { ConversationPreview } from '@/types'
 
-export default function Person({ id, name, username: _username, image, time, message }: ChatPerson) {
-	const { setReceiver } = useContext(ChatContext)!
+export default function ConversationItem({ item }: { item: ConversationPreview }) {
+	const { conversation, setConversation } = useContext(ChatContext)!
 
 	return (
 		<div
-			className="flex items-center gap-4 p-2 my-2 rounded-lg hover:bg-muted/50 cursor-pointer"
-			onClick={() => setReceiver(id)}
+			className={`flex items-center gap-4 p-2 my-2 rounded-lg hover:bg-muted/50 cursor-pointer ${conversation?.id === item.id ? 'bg-muted/50' : ''}`}
+			onClick={() => setConversation(item)}
 		>
 			<Avatar className="border w-10 h-10">
-				<AvatarImage src={image} />
+				<AvatarImage src={item.image} />
 				<AvatarFallback>
-					{name
+					{item.name
 						.split(' ')
 						.map(n => n[0].toLocaleUpperCase())
-						.join('')}
+						.join('')
+						.slice(0, 2)}
 				</AvatarFallback>
 			</Avatar>
 			<div className="grid gap-0.5">
-				<p className="text-sm font-medium leading-none">{name}</p>
+				<p className="text-sm font-medium leading-none">{item.name}</p>
 				<p className="text-xs text-muted-foreground">
-					{message} &middot; {time}
+					{item.lastMessage.content} &middot;{' '}
+					{formatDistanceToNow(new Date(item.lastMessage.createdAt), { addSuffix: true })}
 				</p>
 			</div>
 		</div>

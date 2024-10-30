@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { Loader2Icon } from 'lucide-react'
+import { EyeIcon, EyeOffIcon, Loader2Icon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -43,6 +43,8 @@ function Register() {
 	const navigate = useNavigate()
 
 	const [loading, setLoading] = useState(false)
+	const [showPassword, setShowPassword] = useState(false)
+	const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
 
 	const { setUser } = useContext(UserContext)!
 
@@ -80,8 +82,8 @@ function Register() {
 				})
 				toast.success('Welcome ' + data.username)
 
-				if (redirect !== undefined && redirect !== '') router.history.push(redirect)
-				else navigate({ to: '/' })
+				if (redirect !== undefined && redirect !== '') window.location.href = redirect
+				else window.location.href = '/'
 			} else {
 				const text = await resp.text()
 				if (resp.headers.get('Content-Type')?.includes('application/json')) {
@@ -94,7 +96,10 @@ function Register() {
 						})
 					} else {
 						toast.error(err.message, {
-							description: Object.values(err.data).map((t, i) => <p key={i}>&middot; {t}</p>),
+							description:
+								err.data instanceof Object
+									? Object.values(err.data).map((t, i) => <p key={i}>&middot; {t}</p>)
+									: err.data,
 							duration: 5000
 						})
 					}
@@ -135,6 +140,7 @@ function Register() {
 								/>
 							</div>
 							<div className="space-y-2">
+								{/* TODO check if username exists, after the user input */}
 								<FormField
 									control={form.control}
 									name="username"
@@ -157,13 +163,22 @@ function Register() {
 										<FormItem>
 											<FormLabel htmlFor="password">Password</FormLabel>
 											<FormControl>
-												<Input
-													{...field}
-													id="password"
-													placeholder="Enter your password"
-													type="password"
-													disabled={loading}
-												/>
+												<div className="relative w-full max-w-sm items-center">
+													<span
+														className="absolute	end-2 inset-y-0 flex items-center justify-center px-2 cursor-pointer z-10"
+														onClick={() => setShowPassword(!showPassword)}
+													>
+														{showPassword ? <EyeIcon className="size-5" /> : <EyeOffIcon className="size-5" />}
+													</span>
+													<Input
+														{...field}
+														id="password"
+														placeholder="Enter your password"
+														type={showPassword ? 'text' : 'password'}
+														disabled={loading}
+														className="pr-10"
+													/>
+												</div>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -176,15 +191,24 @@ function Register() {
 									name="passwordConfirm"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel htmlFor="password_confirm">Confirm Password</FormLabel>
+											<FormLabel htmlFor="passwordConfirm">Confirm Password</FormLabel>
 											<FormControl>
-												<Input
-													{...field}
-													id="password_confirm"
-													placeholder="Confirm your password"
-													type="password"
-													disabled={loading}
-												/>
+												<div className="relative w-full max-w-sm items-center">
+													<span
+														className="absolute	end-2 inset-y-0 flex items-center justify-center px-2 cursor-pointer z-10"
+														onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
+													>
+														{showPasswordConfirm ? <EyeIcon className="size-5" /> : <EyeOffIcon className="size-5" />}
+													</span>
+													<Input
+														{...field}
+														id="passwordConfirm"
+														placeholder="Confirm your password"
+														type={showPasswordConfirm ? 'text' : 'password'}
+														disabled={loading}
+														className="pr-10"
+													/>
+												</div>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -202,6 +226,7 @@ function Register() {
 					Already have an account?
 					<Link
 						to="/auth/login"
+						search={redirect !== undefined ? { redirect } : undefined}
 						className="ml-2 text-center text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-500"
 					>
 						Login

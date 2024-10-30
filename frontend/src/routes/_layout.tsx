@@ -6,7 +6,7 @@ import Header from '@/components/Header'
 export const Route = createFileRoute('/_layout')({
 	beforeLoad: () => {
 		const token = localStorage.getItem('token')
-		if (token) throw redirect({ to: '/home' })
+		if (token && token !== '""') throw redirect({ to: '/home' })
 	},
 	component: () => (
 		<>

@@ -1,20 +1,32 @@
-import { PhoneIcon, VideoIcon } from 'lucide-react'
+import { useContext } from 'react'
+import { ArrowLeftIcon, PhoneIcon, VideoIcon } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Button } from '../ui/button'
-import { Link } from '@tanstack/react-router'
-import ThemeButton from '../ThemeButton'
+import { ChatContext } from '@/context/chatContext'
 
 export default function PersonInfo() {
+	const { conversation, setConversation } = useContext(ChatContext)!
+
 	return (
 		<div className="p-3 flex border-b items-center h-16">
 			<div className="flex items-center gap-2">
+				<Button className="sm:hidden sm:opacity-0" variant="ghost" size="icon" onClick={() => setConversation(null)}>
+					<ArrowLeftIcon className="size-4" />
+				</Button>
 				<Avatar className="border w-10 h-10">
-					<AvatarImage src="/placeholder-user.jpg" />
-					<AvatarFallback>OM</AvatarFallback>
+					<AvatarImage src={conversation?.image} />
+					<AvatarFallback>
+						{(conversation?.name ?? conversation!.username)
+							.split(' ')
+							.map(n => n[0].toLocaleUpperCase())
+							.join('')
+							.slice(0, 2)}
+					</AvatarFallback>
 				</Avatar>
 				<div className="grid gap-0.5">
-					<p className="text-sm font-medium leading-none">Sofia Davis</p>
-					<p className="text-xs text-muted-foreground">Active 2h ago</p>
+					<p className="text-sm font-medium leading-none">{conversation?.name ?? conversation?.username}</p>
+					{/* TODO implement last active time */}
+					<p className="text-xs text-muted-foreground">TODO</p>
 				</div>
 			</div>
 			<div className="flex items-center gap-1 ml-auto">
@@ -26,10 +38,6 @@ export default function PersonInfo() {
 					<span className="sr-only">Video call</span>
 					<VideoIcon className="h-4 w-4" />
 				</Button>
-				<Button variant="ghost" asChild>
-					<Link to="/auth/login">Login</Link>
-				</Button>
-				<ThemeButton />
 			</div>
 		</div>
 	)

@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { Loader2Icon } from 'lucide-react'
+import { EyeIcon, EyeOffIcon, Loader2Icon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -19,6 +19,7 @@ type LoginData = {
 		username: string
 		createdAt: string
 	}
+	status: string
 }
 
 const LoginFormSchema = z.object({
@@ -36,6 +37,10 @@ function Login() {
 	const navigate = useNavigate()
 
 	const [loading, setLoading] = useState(false)
+	const [showPassword, setShowPassword] = useState(false)
+
+	// TODO animate the password visibility icon
+	// const [autoAnimateRef] = useAutoAnimate<HTMLDivElement>()
 
 	const { setUser } = useContext(UserContext)!
 
@@ -45,7 +50,6 @@ function Login() {
 			username: '',
 			password: ''
 		},
-		// FIX doesn't focus the form
 		shouldFocusError: true
 	})
 
@@ -66,7 +70,6 @@ function Login() {
 				if (token === null) throw new Error('Token not found in response headers')
 
 				const { data } = (await resp.json()) as LoginData
-				// setReceiver(data.username === '"marifcelik"' ? '"tipit"' : '"marifcelik"')
 				setUser({
 					id: data.id,
 					username: data.username,
@@ -74,8 +77,9 @@ function Login() {
 				})
 				toast.success('Welcome back ' + data.username)
 
-				if (redirect !== undefined && redirect !== '') router.history.push(redirect)
-				else navigate({ to: '/' })
+				// FIX after login, conversations don't load, so, for now, im using hard relocation
+				if (redirect !== undefined && redirect !== '') window.location.href = redirect
+				else window.location.href = '/'
 			} else {
 				const text = await resp.text()
 				if (resp.headers.get('Content-Type')?.includes('application/json')) {
@@ -94,7 +98,7 @@ function Login() {
 		} catch (err) {
 			console.error('handle login error', err)
 			// @ts-expect-error err is unknown
-			toast.error('An error occurred', { description: err.message as string, duration: 5000 })
+			toast.error('An error occurred', { description: err.message, duration: 5000 })
 		} finally {
 			setLoading(false)
 		}
@@ -132,13 +136,22 @@ function Login() {
 										<FormItem>
 											<FormLabel htmlFor="password">Password</FormLabel>
 											<FormControl>
-												<Input
-													{...field}
-													id="password"
-													placeholder="Enter your password"
-													type="password"
-													disabled={loading}
-												/>
+												<div className="relative w-full max-w-sm items-center">
+													<span
+														className="absolute	end-2 inset-y-0 flex items-center justify-center px-2 cursor-pointer z-10"
+														onClick={() => setShowPassword(!showPassword)}
+													>
+														{showPassword ? <EyeIcon className="size-5" /> : <EyeOffIcon className="size-5" />}
+													</span>
+													<Input
+														{...field}
+														id="password"
+														placeholder="Enter your password"
+														type={showPassword ? 'text' : 'password'}
+														disabled={loading}
+														className="pr-10"
+													/>
+												</div>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -156,6 +169,7 @@ function Login() {
 					Don't have an account?
 					<Link
 						to="/auth/register"
+						search={redirect !== undefined ? { redirect } : undefined}
 						className="ml-2 text-center text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-500"
 					>
 						Register

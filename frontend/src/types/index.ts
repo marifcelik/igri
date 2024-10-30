@@ -1,3 +1,5 @@
+type RequireField<T, K extends keyof T> = T & Required<Pick<T, K>>
+
 /* TODO find another name for MessageType and generate another enum 
 for the "actual" message type like text, image, video, etc. */
 export enum MessageType {
@@ -6,12 +8,20 @@ export enum MessageType {
 }
 
 export type WSMessage = {
-	type: MessageType
+	id?: string
 	senderID: string
-	receiverID?: string
-	data: string
-	groupID?: string
-}
+	content: string
+	createdAt?: string
+} & (
+	| {
+			recipientUsername: string
+			conversationID?: never
+	  }
+	| {
+			recipientUsername?: never
+			conversationID: string
+	  }
+)
 
 export type UserFields = {
 	id: string
@@ -19,11 +29,15 @@ export type UserFields = {
 	token: string
 }
 
-export type ChatPerson = {
+export type ConversationPreview = {
 	id: string
 	name: string
 	username: string
+	participants: string[]
 	image: string
-	time: string
-	message: string
+	lastMessage: RequireField<Omit<WSMessage, 'recipientID'>, 'createdAt'>
+}
+
+export type ConversationRequest = {
+	username: string
 }
