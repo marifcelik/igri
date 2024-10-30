@@ -26,7 +26,7 @@ export default function PersonInfo() {
 				<div className="grid gap-0.5">
 					<p className="text-sm font-medium leading-none">{conversation?.name ?? conversation?.username}</p>
 					{/* TODO implement last active time */}
-					<p className="text-xs text-muted-foreground">TODO</p>
+					<p className="text-xs text-muted-foreground">{conversation?.username} - TODO</p>
 				</div>
 			</div>
 			<div className="flex items-center gap-1 ml-auto">
