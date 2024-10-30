@@ -16,6 +16,14 @@ type M struct {
 	Version   int                `json:"-" bson:"version,omitempty"`
 }
 
+// TODO implement custom MarshalJSON method for hide zero time values
+// func (m *M) MarshalJSON() ([]byte, error) {
+// 	type Alias M
+// 	if m.CreatedAt.IsZero() {
+
+// 	}
+// }
+
 type User struct {
 	M        `bson:",inline"`
 	Name     string    `json:"name,omitempty" bson:"name,omitempty"`
@@ -26,9 +34,10 @@ type User struct {
 
 type Conversation struct {
 	M            `bson:",inline"`
+	Name         string                 `json:"name,omitempty" bson:"name,omitempty"`
 	Type         enums.ConversationType `json:"type,omitempty" bson:"type,omitempty"`
 	Participants []primitive.ObjectID   `json:"participants,omitempty" bson:"participants,omitempty"`
-	LastMessage  *Message               `json:"lastMessageID,omitempty" bson:"last_message_id,omitempty"`
+	LastMessage  *Message               `json:"lastMessage,omitempty" bson:"last_message,omitempty"`
 }
 
 // TODO add ContentType field for handling text, image, video, etc.
@@ -45,5 +54,5 @@ type UserConversation struct {
 	UserID         primitive.ObjectID `json:"userID,omitempty" bson:"user_id,omitempty"`
 	ConversationID primitive.ObjectID `json:"conversationID,omitempty" bson:"conversation_id,omitempty"`
 	UnreadCount    int                `json:"unreadCount,omitempty" bson:"unread_count,omitempty"`
-	// LastReadMessageID primitive.ObjectID `json:"lastMessageID,omitempty" bson:"last_message_id,omitempty"`
+	LastMessageID  primitive.ObjectID `json:"lastMessageID,omitempty" bson:"last_message_id,omitempty"`
 }
