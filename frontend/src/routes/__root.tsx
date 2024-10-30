@@ -35,6 +35,7 @@ export const Route = createRootRoute({
 						recipientID,
 						setRecipientID,
 						conversation,
+						// @ts-expect-error its fine
 						setConversation
 					}}
 				>

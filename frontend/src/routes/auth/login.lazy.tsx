@@ -1,5 +1,5 @@
 import { useContext, useState } from 'react'
-import { createLazyFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router'
+import { createLazyFileRoute, Link } from '@tanstack/react-router'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -32,9 +32,9 @@ export const Route = createLazyFileRoute('/auth/login')({
 })
 
 function Login() {
-	const router = useRouter()
+	// const router = useRouter()
 	const { redirect } = Route.useSearch<{ redirect?: string }>()
-	const navigate = useNavigate()
+	// const navigate = useNavigate()
 
 	const [loading, setLoading] = useState(false)
 	const [showPassword, setShowPassword] = useState(false)
