@@ -11,7 +11,7 @@ import (
 	"go-chat/internal/message"
 	"go-chat/internal/ws"
 	"go-chat/middlewares"
-	"go-chat/storage"
+	st "go-chat/storage"
 
 	"github.com/charmbracelet/log"
 	"github.com/go-chi/chi/v5"
@@ -29,8 +29,11 @@ func main() {
 		middleware.Recoverer,
 		middleware.Heartbeat("/healthz"),
 		cors.Handler(cors.Options{
-			AllowedMethods: []string{"DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT", "UPDATE"},
-			ExposedHeaders: []string{"X-Session", "X-Session-Expiry"},
+			AllowedMethods:   []string{"DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT", "UPDATE"},
+			ExposedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", config.C.HeaderKey.Session, config.C.HeaderKey.Expiry},
+			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", config.C.HeaderKey.Session, config.C.HeaderKey.Expiry},
+			AllowedOrigins:   []string{"*"},
+			AllowCredentials: true,
 		}),
 	)
 
@@ -40,9 +43,9 @@ func main() {
 	ws.Setup(app, db.DB)
 
 	app.With(middlewares.Auth).Get("/", func(w http.ResponseWriter, r *http.Request) {
-		count := storage.Session.GetInt(r.Context(), "count")
+		count := st.Session.GetInt(r.Context(), "count")
 		count++
-		storage.Session.Put(r.Context(), "count", count)
+		st.Session.Put(r.Context(), "count", count)
 
 		w.WriteHeader(http.StatusAccepted)
 		w.Write([]byte(strconv.Itoa(count) + "\n"))
@@ -50,5 +53,5 @@ func main() {
 
 	addr := net.JoinHostPort(config.C.Host, config.C.Port)
 	log.Info("Server listening on " + addr)
-	log.Fatal(http.ListenAndServe(addr, storage.Session.LoadAndServeHeader(app)))
+	log.Fatal(http.ListenAndServe(addr, st.Session.LoadAndServeHeader(app)))
 }

@@ -25,8 +25,8 @@ type mySession struct {
 
 func (s *mySession) LoadAndServeHeader(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		key := "X-Session"
-		expiryKey := "X-Session-Expiry"
+		key := config.C.HeaderKey.Session
+		expiryKey := config.C.HeaderKey.Expiry
 
 		ctx, err := s.Load(r.Context(), r.Header.Get(key))
 		if err != nil {

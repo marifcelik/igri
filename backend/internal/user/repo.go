@@ -1,20 +1,19 @@
 package user
 
 import (
+	"go-chat/config"
+
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type userRepo struct {
-	users         *mongo.Collection
-	messages      *mongo.Collection
-	groupMessages *mongo.Collection
+	users, messages *mongo.Collection
 }
 
 func NewUserRepo(db *mongo.Database) *userRepo {
 	return &userRepo{
-		users:         db.Collection("users"),
-		messages:      db.Collection("messages"),
-		groupMessages: db.Collection("group_messages"),
+		users:    db.Collection(config.C.DBKey.Users),
+		messages: db.Collection(config.C.DBKey.Messages),
 	}
 }
 
