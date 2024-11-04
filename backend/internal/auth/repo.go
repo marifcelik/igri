@@ -22,11 +22,13 @@ func NewAuthRepo(db *mongo.Database) *AuthRepo {
 
 func (r *AuthRepo) GetUserByUsername(username string, ctx context.Context) (models.User, error) {
 	user := models.User{}
-	result := r.users.FindOne(ctx, bson.M{"username": username})
-	if result.Err() != nil {
-		return user, result.Err()
-	}
-	err := result.Decode(&user)
+	err := r.users.FindOne(ctx, bson.M{"username": username}).Decode(&user)
+	return user, err
+}
+
+func (r *AuthRepo) GetUserByID(id primitive.ObjectID, ctx context.Context) (models.User, error) {
+	user := models.User{}
+	err := r.users.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
 	return user, err
 }
 
