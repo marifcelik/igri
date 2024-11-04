@@ -1,9 +1,14 @@
-import ThemeButton from '@/components/ThemeButton'
-import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
+import { createFileRoute, Link, Outlet, redirect } from '@tanstack/react-router'
 import { ArrowLeftIcon } from 'lucide-react'
+import ThemeButton from '@/components/ThemeButton'
 
 export const Route = createFileRoute('/auth')({
-	component: AuthLayout
+	component: AuthLayout,
+	beforeLoad: () => {
+		const token = localStorage.getItem('token')
+		if (token && !['', 'null', '"null"', 'undefined', '"undefined"', '""'].includes(token))
+			throw redirect({ to: '/home' })
+	}
 })
 
 function AuthLayout() {

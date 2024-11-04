@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent, useContext } from 'react'
+import { useState, useEffect, type FormEvent, useContext, useRef, useMemo } from 'react'
 import useWebSocket, { ReadyState } from 'react-use-websocket'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
@@ -9,7 +9,7 @@ import ChatContainer from '@/components/home/ChatContainer'
 import MessageBox from '@/components/home/MessageBox'
 import { API_URL } from '@/lib/config'
 import useBreakpoint from '@/hooks/breakpoint'
-import type { ConversationPreview, WSMessage } from '@/types'
+import { ConversationPreview, ConversationMessage, WSMessage, WSMessageType, ResultStatus, MessageType } from '@/types'
 import { UserContext } from '@/context/userContext'
 import { ChatContext } from '@/context/chatContext'
 
@@ -30,27 +30,67 @@ export const Route = createFileRoute('/home')({
 function Home() {
 	const [messageValue, setMessageValue] = useState('')
 	const [conversations, setConversations] = useState<ConversationPreview[]>([])
-	const { user } = useContext(UserContext)!
+
+	const conversationPreviews = useMemo(() => {
+		return conversations.sort((a, b) => {
+			const aTime = new Date(a.lastMessage.createdAt).getTime()
+			const bTime = new Date(b.lastMessage.createdAt).getTime()
+			return bTime - aTime
+		})
+	}, [conversations])
+
+	const inputRef = useRef<HTMLInputElement>(null)
+
+	const { user, setUser } = useContext(UserContext)!
 	const { setMessageHistory, conversation, setConversation } = useContext(ChatContext)!
 
 	const [autoAnimateRef] = useAutoAnimate<HTMLDivElement>()
 
 	const breakpoint = useBreakpoint()
 
+	// TODO block back to the login page
+	// useBlocker()
 	const navigate = Route.useNavigate()
 
-	const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket<WSMessage>(
+	const { sendJsonMessage, readyState } = useWebSocket<WSMessage>(
 		API_URL.replace('http', 'ws') + '/_ws?token=' + user.token,
 		{
 			onOpen: () => console.log('opened'),
 			onClose: () => console.log('closed'),
 			onMessage: e => {
-				console.log(e)
+				console.log(e.data)
+				const message = JSON.parse(e.data) as WSMessage
+
+				if (message.type === WSMessageType.RESULT) {
+					if (message.data.status === ResultStatus.FAILURE) {
+						toast.error(message.data.message)
+					}
+					return
+				}
+
+				const index = conversations.findIndex(c => c.id === message.data.conversationID)
+
+				if (conversation?.id === message.data.conversationID) {
+					setMessageHistory(prev => prev.concat(message.data))
+				} else {
+					conversations[index].unreadCount ??= 0
+					conversations[index].unreadCount++
+				}
+
+				setConversations(prev => {
+					if (index !== -1) {
+						const newConversations = [...prev]
+						// @ts-expect-error previws.lastMessage does not have recipientUsername
+						newConversations[index].lastMessage = message.data
+						return newConversations
+					}
+
+					return prev
+				})
 			},
 			shouldReconnect: () => true,
 			onReconnectStop: () => {
-				// TODO use `useLocalStorage` hook
-				localStorage.setItem('token', '""')
+				setUser(null)
 				toast.error('Cannot connect to chat server, please login again', { duration: 5000 })
 				navigate({ to: '/auth/login', search: { redirect: '/home' } })
 			},
@@ -58,13 +98,6 @@ function Home() {
 			reconnectInterval: 2000
 		}
 	)
-
-	useEffect(() => {
-		if (lastJsonMessage) {
-			console.log('lastJsonMessage', lastJsonMessage)
-			setMessageHistory(prev => prev.concat(lastJsonMessage))
-		}
-	}, [lastJsonMessage])
 
 	useEffect(() => {
 		fetchConversations()
@@ -95,19 +128,38 @@ function Home() {
 		try {
 			e.preventDefault()
 			// @ts-expect-error its fine
-			const msg: WSMessage = {
+			const msg: ConversationMessage = {
 				senderID: user.id,
-				content: messageValue
+				content: messageValue,
+				createdAt: new Date().toUTCString(),
+				type: MessageType.NORMAL
 			}
 
 			if (!conversation.id && conversation.username) {
 				msg.recipientUsername = conversation.username
 			} else {
-				msg.conversationID = conversation!.id
+				msg.conversationID = conversation.id
 			}
 
-			sendJsonMessage<WSMessage>(msg)
+			requestAnimationFrame(() => {
+				setTimeout(() => {
+					inputRef.current?.focus()
+				}, 0)
+			})
+
+			sendJsonMessage<ConversationMessage>(msg)
 			setMessageHistory(prev => prev.concat(msg))
+			setConversations(prev => {
+				const index = prev.findIndex(c => c.id === msg.conversationID)
+				if (index !== -1) {
+					const newConversations = [...prev]
+					// @ts-expect-error previws.lastMessage does not have recipientUsername
+					newConversations[index].lastMessage = msg
+					return newConversations
+				}
+
+				return prev
+			})
 			setMessageValue('')
 		} catch (err: any) {
 			// TODO handle error
@@ -130,7 +182,7 @@ function Home() {
 				{readyState === ReadyState.OPEN ? (
 					<>
 						{/* TODO update last message when a message send or received and resort conversations */}
-						{(breakpoint !== 'phone' || !conversation) && <Sidebar conversations={conversations} />}
+						{(breakpoint !== 'phone' || !conversation) && <Sidebar conversations={conversationPreviews} />}
 						{(breakpoint !== 'phone' || conversation?.id || conversation?.username) && (
 							<div ref={autoAnimateRef} className="h-full overflow-hidden">
 								{!conversation || conversation.id === 'null' || conversation.id === '""' ? (
@@ -141,7 +193,7 @@ function Home() {
 									<>
 										<PersonInfo />
 										<ChatContainer />
-										<MessageBox onSubmit={handleSend} value={messageValue} setValue={setMessageValue} />
+										<MessageBox onSubmit={handleSend} value={messageValue} setValue={setMessageValue} ref={inputRef} />
 									</>
 								)}
 							</div>

@@ -70,9 +70,7 @@ function UsernameForm({
 	function createNewConversation(data: z.infer<typeof FormSchema>) {
 		// TODO check if the username exists
 		// when a new conversation created, the conversation should only have the username
-		setConversation({
-			username: data.username
-		})
+		setConversation({ username: data.username })
 		setOpen(false)
 	}
 

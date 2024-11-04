@@ -33,8 +33,8 @@ export default function Sidebar({ conversations }: { conversations: Conversation
 				</div>
 			</div>
 			<div ref={autoAnimateRef} className="h-[calc(100%-6rem)] overflow-y-auto">
-				{conversations.map((conversation, index) => (
-					<ConversationItem key={index} item={conversation} />
+				{conversations.map(conversation => (
+					<ConversationItem key={conversation.id} item={conversation} />
 				))}
 			</div>
 		</div>

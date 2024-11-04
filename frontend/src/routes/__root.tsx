@@ -5,7 +5,7 @@ import { useLocalStorage } from 'react-use'
 import SonnerContainer from '@/components/SonnerContainer'
 import { ChatContext } from '@/context/chatContext'
 import { UserContext } from '@/context/userContext'
-import type { ConversationPreview, UserFields, WSMessage } from '@/types'
+import type { ConversationPreview, UserFields, ConversationMessage } from '@/types'
 
 export const Route = createRootRoute({
 	component: () => {
@@ -15,11 +15,19 @@ export const Route = createRootRoute({
 
 		const [recipientID, setRecipientID] = useState<string | null>(null)
 		const [conversation, setConversation] = useState<ConversationPreview | null>(null)
-		// @ts-expect-error
+		// @ts-expect-error react-use's useLocalStorage returns undefined even though we've set a default value
 		const [user, setUser] = useState<UserFields>({ id, username, token })
-		const [messageHistory, setMessageHistory] = useState<WSMessage[]>([])
+		const [messageHistory, setMessageHistory] = useState<ConversationMessage[]>([])
 
-		function handleSetUser(user: UserFields) {
+		function handleSetUser(user: UserFields | null) {
+			if (!user) {
+				setId('')
+				setUsername('')
+				setToken('')
+				setUser({ id: '', username: '', token: '' })
+				return
+			}
+
 			setId(user.id)
 			setUsername(user.username)
 			setToken(user.token)
