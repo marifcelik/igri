@@ -109,13 +109,13 @@ func (h *wsHandler) OnMessage(conn *gws.Conn, message *gws.Message) {
 		return
 	}
 
-	msg := MessageDTO{}
+	incomingMessage := MessageDTO{}
 
-	if err := json.Unmarshal(message.Bytes(), &msg); err != nil {
+	if err := json.Unmarshal(message.Bytes(), &incomingMessage); err != nil {
 		log.Warn("unmarshal message", "err", err)
 	}
 
-	log.Info("message received", "from", conn.RemoteAddr(), "msg", msg)
+	log.Info("message received", "from", conn.RemoteAddr(), "msg", incomingMessage)
 
 	_, ok := st.Session.Get(conn.Context(), config.C.SessionIDKey).(string)
 	if !ok {
@@ -124,48 +124,75 @@ func (h *wsHandler) OnMessage(conn *gws.Conn, message *gws.Message) {
 		return
 	}
 
-	if !h.validateUserID(msg.SenderID, conn, ErrInvalidSenderID, ErrSenderNotFound) {
+	if !h.validateUserID(incomingMessage.SenderID, conn, ErrInvalidSenderID, ErrSenderNotFound) {
 		return
 	}
 
-	// TODO use WSMessage DTO
-	// TODO add createdAt field to response
-	_, recipientID, err := h.saveMessage(msg, conn.Context())
+	resp := WSMessage{Type: enums.WSMessageResult}
+
+	messageID, conversationID, recipient, err := h.saveMessage(incomingMessage, conn.Context())
 	if err != nil {
-		// XXX shittiest error handling ever
-		if err != ErrInvalidRecipientID {
-			log.Error("save message", "err", err)
-			conn.WriteString(ErrorServer.Error())
+		log.Error("save message", "err", err)
+		resp.Data = ResultDTO{
+			Status:         enums.ResultFailed,
+			ConversationID: conversationID,
+			MessageID:      messageID,
+			Message:        err.Error(),
 		}
-		return
+		goto SendResponse
 	}
 
-	if to, ok := h.clients.Load(recipientID); ok {
-		if err := to.WriteString(message.Data.String()); err != nil {
+	if to, ok := h.clients.Load(recipient.ID.Hex()); ok {
+		messageToSend := WSMessage{
+			Type: enums.WSMessageConversation,
+			Data: incomingMessage,
+		}
+
+		jsonMessage, _ := json.Marshal(messageToSend)
+
+		if err := to.WriteMessage(gws.OpcodeText, jsonMessage); err != nil {
 			log.Error("write message to", "err", err)
+			resp.Data = ResultDTO{
+				Status:         enums.ResultFailed,
+				ConversationID: conversationID,
+				MessageID:      messageID,
+				Message:        err.Error(),
+			}
 		}
 	} else {
-		log.Warn("user not connected", "userID", recipientID)
-		conn.WriteString("user not connected")
+		log.Warn("user not connected", "userID", recipient)
 	}
+
+	resp.Data = ResultDTO{
+		Status:         enums.ResultSuccess,
+		ConversationID: conversationID,
+		MessageID:      messageID,
+	}
+
+SendResponse:
+	respJson, _ := json.Marshal(resp)
+	conn.WriteMessage(gws.OpcodeText, respJson)
 }
 
 // saveMessage checks the type of the message and saves it to the database
-func (h *wsHandler) saveMessage(msg MessageDTO, ctx context.Context) (messageID, recipientID string, err error) {
-	senderID, err := primitive.ObjectIDFromHex(msg.SenderID)
+// if the message is a new conversation, it creates a new conversation and saves the message
+func (h *wsHandler) saveMessage(incomingMessage MessageDTO, ctx context.Context) (messageID, conversationID string, recipient models.User, err error) {
+	senderID, err := primitive.ObjectIDFromHex(incomingMessage.SenderID)
 	if err != nil {
-		log.Error(ErrInvalidSenderID, "id", msg.SenderID, "err", err)
-		return "", "", fmt.Errorf("%s: %w", ErrInvalidSenderID.Error(), err)
+		log.Error(ErrInvalidSenderID, "id", incomingMessage.SenderID, "err", err)
+		err = fmt.Errorf("%s: %w", ErrInvalidSenderID.Error(), err)
+		return
 	}
 
-	if !msg.Type.IsValid() {
-		log.Warn("unknown message type", "type", msg.Type)
-		return "", "", errors.New("unknown message type")
+	if !incomingMessage.Type.IsValid() {
+		log.Warn("unknown message type", "type", incomingMessage.Type)
+		err = errors.New("unknown message type")
+		return
 	}
 
 	message := models.Message{
 		SenderID: senderID,
-		Content:  msg.Content,
+		Content:  incomingMessage.Content,
 		M: models.M{
 			ID:        primitive.NewObjectID(),
 			CreatedAt: time.Now(),
@@ -173,43 +200,52 @@ func (h *wsHandler) saveMessage(msg MessageDTO, ctx context.Context) (messageID,
 		},
 	}
 
-	recipientIDObject, err := h.establishConversation(senderID, &msg, &message, ctx)
+	recipient, err = h.establishConversation(senderID, &incomingMessage, &message, ctx)
 	if err != nil {
-		return "", "", err
+		return
 	}
 
 	// TODO consider removing the id from the return value
 	messageIDObject, err := h.repo.CreateMessage(message, ctx)
 	if err != nil {
-		return "", "", fmt.Errorf("save message: %w", err)
+		err = fmt.Errorf("save message: %w", err)
+		return
 	}
-	return messageIDObject.Hex(), recipientIDObject.Hex(), nil
+	return messageIDObject.Hex(), message.ConversationID.Hex(), recipient, nil
 }
 
-func (h *wsHandler) establishConversation(senderID primitive.ObjectID, incomingMessage *MessageDTO, message *models.Message, ctx context.Context) (recipientID primitive.ObjectID, err error) {
+// establishConversation checks if the conversation exists and creates a new one if it doesn't
+// it also updates the last message of the conversation and adds conversationID to the message
+//
+// TODO this function should return `conversationID`, at this moment, app only has normal conversation
+// so its fine until group conversation is added
+func (h *wsHandler) establishConversation(senderID primitive.ObjectID, incomingMessage *MessageDTO, message *models.Message, ctx context.Context) (recipient models.User, err error) {
 	if incomingMessage.ConversationID == "" {
 		if incomingMessage.Type == enums.GroupConversation {
-			return primitive.NilObjectID, errors.New("conversation id is required for group conversation")
+			err = errors.New("conversation id is required for group conversation")
+			return
 		}
 		if incomingMessage.RecipientUsername == "" {
-			return primitive.NilObjectID, errors.New("recipient id is required for new normal conversation")
+			err = errors.New("recipient id is required for new normal conversation")
+			return
 		}
 
-		user, err := h.userRepo.GetUserByUsername(incomingMessage.RecipientUsername, ctx)
+		recipient, err = h.userRepo.GetUserByUsername(incomingMessage.RecipientUsername, ctx)
 		if err != nil {
 			if errors.Is(err, mongo.ErrNoDocuments) {
 				log.Error("invalid recipient username", "username", incomingMessage.RecipientUsername, "err", err)
-				return primitive.NilObjectID, fmt.Errorf("invalid recipient username: %w", err)
+				err = fmt.Errorf("invalid recipient username: %w", err)
+				return
 			}
 			log.Error("check recipient username", "err", err)
-			return primitive.NilObjectID, fmt.Errorf("check recipient username: %w", err)
+			err = fmt.Errorf("check recipient username: %w", err)
+			return
 		}
-		recipientID = user.ID
 		message.ConversationID = primitive.NewObjectID()
 
 		conversation := models.Conversation{
 			Type:         incomingMessage.Type,
-			Participants: []primitive.ObjectID{senderID, recipientID},
+			Participants: []primitive.ObjectID{senderID, recipient.ID},
 			LastMessage:  message,
 			M: models.M{
 				ID:        message.ConversationID,
@@ -219,26 +255,30 @@ func (h *wsHandler) establishConversation(senderID primitive.ObjectID, incomingM
 		}
 
 		// TODO consider removing the id from the return value
-		result, err := h.repo.CreateConversation(conversation, ctx)
+		_, err = h.repo.CreateConversation(conversation, ctx)
 		if err != nil {
-			return primitive.NilObjectID, fmt.Errorf("save conversation: %w", err)
+			err = fmt.Errorf("save conversation: %w", err)
+			return
 		}
-		log.Info("conversation created", "id", result.String())
 	} else {
-		var err error
 		message.ConversationID, err = primitive.ObjectIDFromHex(incomingMessage.ConversationID)
 		if err != nil {
-			return primitive.NilObjectID, fmt.Errorf("invalid conversation id: %w", err)
+			err = fmt.Errorf("invalid conversation id: %w", err)
+			return
 		}
 
 		if err = h.repo.UpdateLastMessageOfConversation(*message, ctx); err != nil {
-			return primitive.NilObjectID, fmt.Errorf("update conversation: %w", err)
+			err = fmt.Errorf("update conversation: %w", err)
+			return
 		}
 
+		var recipientID primitive.ObjectID
 		recipientID, err = h.repo.GetRecipientIDByConversationID(message.ConversationID, message.SenderID, ctx)
 		if err != nil {
-			return primitive.NilObjectID, fmt.Errorf("get recipient id: %w", err)
+			err = fmt.Errorf("get recipient id: %w", err)
+			return
 		}
+		recipient, err = h.userRepo.GetUserByID(recipientID, ctx)
 	}
 
 	return

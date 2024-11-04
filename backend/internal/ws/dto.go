@@ -20,4 +20,5 @@ type ResultDTO struct {
 	Status         enums.ResultStatus `json:"status"`
 	ConversationID string             `json:"conversationID"`
 	MessageID      string             `json:"messageID"`
+	Message        string             `json:"message,omitempty"`
 }
