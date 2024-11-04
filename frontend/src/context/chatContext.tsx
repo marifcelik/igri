@@ -1,9 +1,9 @@
 import { createContext } from 'react'
-import type { WSMessage, ConversationPreview, ConversationRequest } from '@/types'
+import type { ConversationMessage, ConversationPreview, ConversationRequest } from '@/types'
 
 type ChatContextType = {
-	messageHistory: WSMessage[]
-	setMessageHistory: React.Dispatch<React.SetStateAction<WSMessage[]>>
+	messageHistory: ConversationMessage[]
+	setMessageHistory: React.Dispatch<React.SetStateAction<ConversationMessage[]>>
 	recipientID: string | null
 	setRecipientID: React.Dispatch<React.SetStateAction<string | null>>
 	conversation: ConversationPreview | null

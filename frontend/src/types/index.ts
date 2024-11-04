@@ -7,7 +7,8 @@ export enum MessageType {
 	GROUP
 }
 
-export type WSMessage = {
+export type ConversationMessage = {
+	type: MessageType
 	id?: string
 	senderID: string
 	content: string
@@ -23,6 +24,27 @@ export type WSMessage = {
 	  }
 )
 
+export enum ResultStatus {
+	SUCCESS = 0,
+	FAILURE
+}
+
+export type ResultMessage = {
+	status: ResultStatus
+	message?: string
+	conversationID?: string
+	messageID?: string
+}
+
+export enum WSMessageType {
+	CONVERSATION = 0,
+	RESULT
+}
+
+export type WSMessage =
+	| { type: WSMessageType.CONVERSATION; data: ConversationMessage }
+	| { type: WSMessageType.RESULT; data: ResultMessage }
+
 export type UserFields = {
 	id: string
 	username: string
@@ -35,7 +57,8 @@ export type ConversationPreview = {
 	username: string
 	participants: string[]
 	image: string
-	lastMessage: RequireField<Omit<WSMessage, 'recipientID'>, 'createdAt'>
+	lastMessage: RequireField<Omit<ConversationMessage, 'recipientUsername'>, 'createdAt'>
+	unreadCount?: number
 }
 
 export type ConversationRequest = {
