@@ -2,7 +2,6 @@ package message
 
 import (
 	"context"
-	"slices"
 	"time"
 
 	"go-chat/config"
@@ -97,7 +96,7 @@ func (r *messageRepo) GetConversationMessages(ctx context.Context, conversationI
 		return nil, err
 	}
 
-	slices.Reverse(messages)
+	// slices.Reverse(messages)
 
 	return messages, nil
 }
