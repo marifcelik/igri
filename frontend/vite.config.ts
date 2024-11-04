@@ -15,7 +15,7 @@ export default defineConfig({
 		rollupOptions: {
 			output: {
 				manualChunks(id: string) {
-					if (id.indexOf('node_modules') !== -1) {
+					if (id.includes('node_modules')) {
             const basic = id.toString().split('node_modules/')[1];
             const sub1 = basic.split('/')[0];
             if (sub1 !== '.pnpm') {
@@ -25,7 +25,20 @@ export default defineConfig({
             return name2.split('@')[name2[0] === '@' ? 1 : 0].toString();
           }
 				}
-			}
+			},
+			plugins: [
+				{
+					name: 'remove-empty-chunks',
+					generateBundle(_, bundle) {
+						for (const [filename, chunk] of Object.entries(bundle)) {
+							if (chunk.type === 'chunk' && chunk.code.trim() === '') {
+								delete bundle[filename]
+								console.log(`Removed empty chunk: ${filename}`)
+							}
+						}	
+					}
+				}
+			]
 		}
 	}
 })
