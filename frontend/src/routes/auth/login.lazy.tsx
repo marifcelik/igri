@@ -59,10 +59,9 @@ function Login() {
 		try {
 			const resp = await fetch(API_URL + '/auth/login', {
 				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(data)
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(data),
+				signal: AbortSignal.timeout(8000)
 			})
 
 			if (resp.ok) {
@@ -95,9 +94,15 @@ function Login() {
 					toast.error('An error occurred', { description: text, duration: 5000 })
 				}
 			}
-		} catch (err) {
+		} catch (err: any) {
 			console.error('handle login error', err)
-			// @ts-expect-error err is unknown
+			if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+				toast.error('Request timed out', {
+					description: 'Please check your internet connection, and try again',
+					duration: 5000
+				})
+				return
+			}
 			toast.error('An error occurred', { description: err.message, duration: 5000 })
 		} finally {
 			setLoading(false)

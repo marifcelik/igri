@@ -22,7 +22,7 @@ export default function Sidebar({ conversations }: { conversations: Conversation
 					<div className="font-medium text-sm ml-4">Chats</div>
 					<div className="flex items-center justify-center gap-3">
 						<Button className="rounded-full" variant="destructive" size="icon" onClick={handleLogout}>
-							<LogOutIcon className="size-5 rotate-180" />
+							<LogOutIcon className="size-5" />
 						</Button>
 						<NewConversation />
 						<ThemeButton />

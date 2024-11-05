@@ -8,7 +8,11 @@ export const Route = createFileRoute('/_layout')({
 		const token = localStorage.getItem('token')
 		if (token && token !== '""') throw redirect({ to: '/home' })
 	},
-	component: () => (
+	component: Layout
+})
+
+function Layout() {
+	return (
 		<>
 			<Header />
 			<main className="container mx-auto pt-24 md:pt-28 pb-12 md:pb-16">
@@ -17,4 +21,4 @@ export const Route = createFileRoute('/_layout')({
 			{/* createPortal(<Footer />, document.body) */}
 		</>
 	)
-})
+}
