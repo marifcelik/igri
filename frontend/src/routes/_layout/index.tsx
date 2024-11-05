@@ -16,7 +16,7 @@ function Index() {
 
 	return (
 		<div className="grid grid-cols-1 sm:grid-cols-2">
-			<div className="relative flex h-[300px] sm:h-full w-full flex-col items-center justify-center overflow-hidden bg-background md:shadow-xl">
+			<div className="relative flex h-[300px] sm:h-full w-full flex-col items-center justify-center overflow-hidden bg-background">
 				<AnimatedGradientText text="İgri ebi" />
 				<div className="flex mt-5 items-center justify-center">
 					<ShimmerButton onClick={() => navigate({ to: '/home' })} className="shadow-2xl z-20">
