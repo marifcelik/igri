@@ -1,9 +1,9 @@
 import { useContext } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { ChatContext } from '@/context/chatContext'
-import type { ConversationPreview } from '@/types'
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Badge } from '../ui/badge'
+import type { ConversationPreview } from '@/types'
 
 export default function ConversationItem({ item }: { item: ConversationPreview }) {
 	const { conversation, setConversation } = useContext(ChatContext)!
@@ -31,7 +31,7 @@ export default function ConversationItem({ item }: { item: ConversationPreview }
 							? item.lastMessage.content
 							: item.lastMessage.content.slice(0, 34) + '...'
 						: item.lastMessage.content}
-					&middot;{' '}
+					{' '}&middot;{' '}
 					{formatDistanceToNow(new Date(item.lastMessage.createdAt), { addSuffix: true, includeSeconds: true })}
 				</p>
 			</div>

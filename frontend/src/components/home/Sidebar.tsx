@@ -1,11 +1,11 @@
 import { useAutoAnimate } from '@formkit/auto-animate/react'
+import { LogOutIcon } from 'lucide-react'
 import ConversationItem from './ConversationItem'
 import NewConversation from './NewConversation'
 import ThemeButton from '../ThemeButton'
 import { Input } from '../ui/input'
-import type { ConversationPreview } from '@/types'
-import { LogOutIcon } from 'lucide-react'
 import { Button } from '../ui/button'
+import type { ConversationPreview } from '@/types'
 
 export default function Sidebar({ conversations }: { conversations: ConversationPreview[] }) {
 	const [autoAnimateRef] = useAutoAnimate()

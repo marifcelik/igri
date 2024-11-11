@@ -8,10 +8,10 @@ import ThemeButton from './ThemeButton'
 function Header() {
 	// const links: { name: string; to: LinkProps['to'] }[] = [{ name: 'Login', to: '/auth/login' }]
 
-	const [open, setOpen] = useState(false)
+	const [open, setOpen] = useState<boolean>(false)
 
 	return (
-		<header className="fixed top-0 left-0 w-full z-30 sm:px-28  bg-transparent">
+		<header className="fixed top-0 left-0 w-full z-30 px-3 sm:px-28 bg-transparent">
 			<div className="container mx-auto flex items-center justify-between px-4 md:px-6 py-4">
 				<Link className="flex items-center gap-2" to="/">
 					<MountainIcon className="h-6 w-6 text-gray-900 dark:text-gray-50" />
