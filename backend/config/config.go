@@ -22,11 +22,11 @@ const (
 type config struct {
 	AppEnv       Env    `envDefault:"dev"`
 	MongoURI     string `env:"MONGO_URI,expand" envDefault:"mongodb://localhost:27017"`
-	MongoName    string `envDefault:"go_chat"`
+	MongoName    string `envDefault:"go-chat"`
 	RedisURL     string `env:"REDIS_URL,expand"`
 	Host         string `envDefault:"localhost"`
 	Port         string `envDefault:"8085"`
-	Expiration   string `envDefault:"1m"`
+	Expiration   string `envDefault:"15m"`
 	SessionIDKey string `envDefault:"user"`
 
 	DBKey struct {

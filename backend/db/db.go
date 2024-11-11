@@ -29,7 +29,7 @@ func init() {
 	}
 
 	DB = client.Database(config.C.MongoName)
-	DB.Collection("users").Indexes().CreateOne(
+	DB.Collection(config.C.DBKey.Users).Indexes().CreateOne(
 		context.Background(),
 		mongo.IndexModel{
 			Keys:    map[string]any{"username": 1},
