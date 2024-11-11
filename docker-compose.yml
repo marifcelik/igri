@@ -1,0 +1,29 @@
+services:
+  db:
+    image: mongo
+    ports:
+      - "27017:27017"
+
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    depends_on:
+      - db
+    environment:
+      - MONGO_URI=mongodb://db:27017
+      - REDIS_URL=redis://redis:6379/0
+      - HOST=0.0.0.0
+    restart: on-failure:3
+    ports:
+      - "8085:8085"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"

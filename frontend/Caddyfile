@@ -1,0 +1,19 @@
+{
+    auto_https off
+}
+
+:80 {
+    root * /var/www/
+    file_server browse
+    try_files {path}.html
+    handle_errors {
+        @404-410 `{err.status_code} in [404, 410]`
+        handle @404-410 {
+            respond "It's a 404 or 410 error!"
+        }
+
+        handle {
+            respond "{err.status_code} {err.status_text}"
+        }
+    }
+}
