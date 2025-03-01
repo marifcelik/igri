@@ -4,7 +4,7 @@ A modern real-time chat application built with Go and React, featuring WebSocket
 
 ## Features
 
-- [ ] 🔐 Secure authentication system 
+- [ ] 🔐 Secure authentication system
 - [X] 💬 Real-time messaging via WebSockets
 - [X] 🌓 Light/Dark theme support
 - [X] 📱 Responsive design
@@ -26,4 +26,5 @@ A modern real-time chat application built with Go and React, featuring WebSocket
 - Redis for session management
 
 ## Development
-Just run `docker-compose up` to start the development environment. 
+1. Create a `.env` file and set `MONGO_PORT` and `REDIS_PORT` variables for port forwarding.
+2. Just run `docker-compose up` to start the development environment.
